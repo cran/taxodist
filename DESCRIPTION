@@ -1,0 +1,35 @@
+Package: taxodist
+Title: Taxonomic Distance and Phylogenetic Lineage Computation
+Version: 0.1.0
+Authors@R: person("Rodrigo Fonseca", "Villa", email = "rodrigo03.villa@gmail.com",
+           role = c("aut", "cre"),
+           comment = c(ORCID = "0009-0005-2938-2270"))
+Maintainer: Rodrigo Fonseca Villa <rodrigo03.villa@gmail.com>
+Description: Computes phylogenetic distances between any two taxa using 
+    hierarchical lineage data retrieved from The Taxonomicon 
+    <http://taxonomicon.taxonomy.nl>, a comprehensive curated classification 
+    of all life based on Systema Naturae 2000 (Brands, 1989 
+    <http://taxonomicon.taxonomy.nl>). Given any two taxon names, retrieves 
+    their full lineages, identifies the most recent common ancestor (MRCA), 
+    and computes a dissimilarity index based on the depth of the most recent 
+    common ancestor. Supports individual distance queries, pairwise distance 
+    matrices, clade filtering, and lineage utilities.
+Language: en-US
+License: GPL-3
+URL: https://github.com/rodrigosqrt3/taxodist
+BugReports: https://github.com/rodrigosqrt3/taxodist/issues
+Encoding: UTF-8
+RoxygenNote: 7.3.3
+SystemRequirements: internet access
+Depends: R (>= 4.1.0)
+Imports: httr (>= 1.4.0), rvest (>= 1.0.0), stringr (>= 1.4.0), purrr
+        (>= 0.3.0), cli (>= 3.0.0), utils, stats
+Suggests: testthat (>= 3.0.0), mockery, knitr, rmarkdown, xml2, ape
+VignetteBuilder: knitr
+Config/testthat/edition: 3
+NeedsCompilation: no
+Packaged: 2026-03-19 14:34:19 UTC; rodri
+Author: Rodrigo Fonseca Villa [aut, cre] (ORCID:
+    <https://orcid.org/0009-0005-2938-2270>)
+Repository: CRAN
+Date/Publication: 2026-03-23 17:40:03 UTC
