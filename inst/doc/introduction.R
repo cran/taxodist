@@ -43,21 +43,47 @@ library(taxodist)
 # mrca("Tyrannosaurus", "Quercus")       # "discaria"
 
 ## ----matrix-------------------------------------------------------------------
-# taxa <- c("Tyrannosaurus", "Carnotaurus", "Velociraptor",
-#           "Triceratops", "Homo", "Drosophila melanogaster")
+# taxa <- c(
+#   "Tyrannosaurus", "Carnotaurus", "Triceratops",
+#   "Parasaurolophus", "Stegosaurus", "Brachiosaurus",
+#   "Homo sapiens", "Homo neanderthalensis", "Pan troglodytes",
+#   "Panthera leo", "Canis lupus",
+#   "Ornithorhynchus anatinus",
+#   "Loxodonta africana",
+#   "Struthio camelus",
+#   "Aptenodytes forsteri",
+#   "Ara ararauna",
+#   "Crocodylus niloticus",
+#   "Chelonia mydas",
+#   "Ambystoma mexicanum",
+#   "Octopus vulgaris",
+#   "Carcharodon carcharias",
+#   "Balaenoptera musculus",
+#   "Drosophila melanogaster",
+#   "Apis mellifera",
+#   "Arabidopsis thaliana",
+#   "Quercus robur",
+#   "Ginkgo biloba",
+#   "Welwitschia mirabilis",
+#   "Saccharomyces cerevisiae",
+#   "Escherichia coli",
+#   "Bacillus subtilis",
+#   "Plasmodium falciparum"
+# )
 # mat <- distance_matrix(taxa)
 # print(mat)
-# 
-# #>                         Tyrannosaurus Carnotaurus Velociraptor Triceratops       Homo
-# #> Carnotaurus                0.01666667
-# #> Velociraptor               0.01538462  0.01666667
-# #> Triceratops                0.01818182  0.01818182   0.01818182
-# #> Homo                       0.02777778  0.02777778   0.02777778  0.02777778
-# #> Drosophila melanogaster    0.06666667  0.06666667   0.06666667  0.06666667 0.06666667
 
-## ----cluster------------------------------------------------------------------
-# tree <- ape::as.phylo(hclust(mat, method = "average"))
-# plot(tree, main = "Taxonomic clustering")
+## ----clustering---------------------------------------------------------------
+# cl <- taxo_cluster(taxa)
+# plot(cl)
+
+## ----PCoA---------------------------------------------------------------------
+# ord <- taxo_ordinate(taxa)
+# summary(ord)
+# plot(ord)
+
+## -----------------------------------------------------------------------------
+# taxo_heatmap(taxa)
 
 ## ----closest------------------------------------------------------------------
 # closest_relative(
@@ -135,4 +161,9 @@ library(taxodist)
 
 ## ----cache--------------------------------------------------------------------
 # clear_cache()
+
+## ----save-cache---------------------------------------------------------------
+# save_cache("my_taxa_cache.rds") # at the end of a session
+# 
+# load_cache("my_taxa_cache.rds") # at the start of the next session, before any distance calls
 

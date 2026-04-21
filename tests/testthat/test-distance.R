@@ -98,6 +98,63 @@ test_that("clear_cache returns invisible NULL", {
   expect_invisible(clear_cache())
 })
 
+test_that("save_cache creates a file with cache contents", {
+  clear_cache()
+  assign("id_Carnotaurus", "12345", envir = taxodist:::.taxodist_cache)
+  tmp <- tempfile(fileext = ".rds")
+  on.exit(unlink(tmp))
+  expect_invisible(save_cache(tmp))
+  expect_true(file.exists(tmp))
+})
+
+test_that("load_cache restores entries into the cache", {
+  clear_cache()
+  assign("id_Carnotaurus", "12345", envir = taxodist:::.taxodist_cache)
+  tmp <- tempfile(fileext = ".rds")
+  on.exit(unlink(tmp))
+  save_cache(tmp)
+  clear_cache()
+  expect_false(exists("id_Carnotaurus", envir = taxodist:::.taxodist_cache))
+  load_cache(tmp)
+  expect_true(exists("id_Carnotaurus", envir = taxodist:::.taxodist_cache))
+  expect_equal(get("id_Carnotaurus", envir = taxodist:::.taxodist_cache), "12345")
+})
+
+test_that("save_cache / load_cache round-trip preserves all entries", {
+  clear_cache()
+  assign("id_Tyrannosaurus", "50841", envir = taxodist:::.taxodist_cache)
+  assign("lin_50841", c("Biota", "Animalia", "Dinosauria", "Tyrannosaurus"),
+         envir = taxodist:::.taxodist_cache)
+  tmp <- tempfile(fileext = ".rds")
+  on.exit(unlink(tmp))
+  save_cache(tmp)
+  clear_cache()
+  load_cache(tmp)
+  expect_equal(get("id_Tyrannosaurus",  envir = taxodist:::.taxodist_cache), "50841")
+  expect_equal(get("lin_50841", envir = taxodist:::.taxodist_cache),
+               c("Biota", "Animalia", "Dinosauria", "Tyrannosaurus"))
+})
+
+test_that("load_cache errors on missing file", {
+  expect_error(load_cache("nonexistent_file.rds"))
+})
+
+test_that("save_cache returns invisible NULL", {
+  clear_cache()
+  tmp <- tempfile(fileext = ".rds")
+  on.exit(unlink(tmp))
+  expect_invisible(save_cache(tmp))
+})
+
+test_that("load_cache returns invisible NULL", {
+  clear_cache()
+  tmp <- tempfile(fileext = ".rds")
+  on.exit(unlink(tmp))
+  save_cache(tmp)
+  clear_cache()
+  expect_invisible(load_cache(tmp))
+})
+
 test_that("filter_clade filters correctly with mocked lineages", {
   mockery::stub(filter_clade, "is_member", function(taxon, clade, ...) {
     memberships <- list(
@@ -111,6 +168,93 @@ test_that("filter_clade filters correctly with mocked lineages", {
     c("Tyrannosaurus", "Triceratops", "Homo"), "Dinosauria"
   )
   expect_equal(result, c("Tyrannosaurus", "Triceratops"))
+})
+
+# ── taxo_path ─────────────────────────────────────────────────────────────────
+
+test_that("taxo_path returns NULL when taxon_a not found", {
+  mockery::stub(taxo_path, "get_lineage", function(...) NULL)
+  expect_null(taxo_path("Fakeosaurus", "Carnotaurus"))
+})
+
+test_that("taxo_path returns NULL when taxon_b not found", {
+  mockery::stub(taxo_path, "get_lineage", function(taxon, ...) {
+    if (taxon == "Carnotaurus")
+      c("Biota", "Animalia", "Dinosauria", "Theropoda", "Carnotaurus")
+    else
+      NULL
+  })
+  expect_null(taxo_path("Carnotaurus", "Fakeosaurus"))
+})
+
+test_that("taxo_path returns a taxodist_path data frame", {
+  mockery::stub(taxo_path, "get_lineage", function(taxon, ...) {
+    if (taxon == "Tyrannosaurus")
+      c("Biota", "Animalia", "Dinosauria", "Theropoda", "Tyrannosaurus")
+    else
+      c("Biota", "Animalia", "Dinosauria", "Ornithischia", "Triceratops")
+  })
+  result <- taxo_path("Tyrannosaurus", "Triceratops")
+  expect_s3_class(result, "taxodist_path")
+  expect_s3_class(result, "data.frame")
+  expect_named(result, c("node", "depth", "direction"))
+})
+
+test_that("taxo_path has exactly one mrca row", {
+  mockery::stub(taxo_path, "get_lineage", function(taxon, ...) {
+    if (taxon == "Tyrannosaurus")
+      c("Biota", "Animalia", "Dinosauria", "Theropoda", "Tyrannosaurus")
+    else
+      c("Biota", "Animalia", "Dinosauria", "Ornithischia", "Triceratops")
+  })
+  result <- taxo_path("Tyrannosaurus", "Triceratops")
+  expect_equal(sum(result$direction == "mrca"), 1L)
+})
+
+test_that("taxo_path mrca node is correct", {
+  mockery::stub(taxo_path, "get_lineage", function(taxon, ...) {
+    if (taxon == "Tyrannosaurus")
+      c("Biota", "Animalia", "Dinosauria", "Theropoda", "Tyrannosaurus")
+    else
+      c("Biota", "Animalia", "Dinosauria", "Ornithischia", "Triceratops")
+  })
+  result <- taxo_path("Tyrannosaurus", "Triceratops")
+  expect_equal(result$node[result$direction == "mrca"], "Dinosauria")
+})
+
+test_that("taxo_path direction column only contains valid values", {
+  mockery::stub(taxo_path, "get_lineage", function(taxon, ...) {
+    if (taxon == "Tyrannosaurus")
+      c("Biota", "Animalia", "Dinosauria", "Theropoda", "Tyrannosaurus")
+    else
+      c("Biota", "Animalia", "Dinosauria", "Ornithischia", "Triceratops")
+  })
+  result <- taxo_path("Tyrannosaurus", "Triceratops")
+  expect_true(all(result$direction %in% c("a", "mrca", "b")))
+})
+
+test_that("taxo_path preserves taxon attributes", {
+  mockery::stub(taxo_path, "get_lineage", function(taxon, ...) {
+    if (taxon == "Tyrannosaurus")
+      c("Biota", "Animalia", "Dinosauria", "Theropoda", "Tyrannosaurus")
+    else
+      c("Biota", "Animalia", "Dinosauria", "Ornithischia", "Triceratops")
+  })
+  result <- taxo_path("Tyrannosaurus", "Triceratops")
+  expect_equal(attr(result, "taxon_a"), "Tyrannosaurus")
+  expect_equal(attr(result, "taxon_b"), "Triceratops")
+})
+
+test_that("print.taxodist_path runs without error and returns invisibly", {
+  mockery::stub(taxo_path, "get_lineage", function(taxon, ...) {
+    if (taxon == "Tyrannosaurus")
+      c("Biota", "Animalia", "Dinosauria", "Theropoda", "Tyrannosaurus")
+    else
+      c("Biota", "Animalia", "Dinosauria", "Ornithischia", "Triceratops")
+  })
+  result <- taxo_path("Tyrannosaurus", "Triceratops")
+  expect_no_error(print(result))
+  expect_invisible(print(result))
 })
 
 # ── Mock tests ────────────────────────────────────────────────────────────────
@@ -598,6 +742,23 @@ test_that("get_lineage passes clean and verbose through to get_lineage_by_id", {
   expect_equal(result, c("Biota", "Animalia", "Plantae", "Quercus"))
 })
 
+test_that("plot.taxodist_cluster runs without error", {
+  m <- matrix(c(0, 0.2, 0.5, 0.2, 0, 0.3, 0.5, 0.3, 0),
+              nrow = 3,
+              dimnames = list(c("A", "B", "C"), c("A", "B", "C")))
+  cl <- taxo_cluster(stats::as.dist(m))
+  expect_no_error(plot(cl))
+})
+
+test_that("plot.taxodist_ord runs without error", {
+  m <- matrix(c(0, 0.2, 0.5, 0.2, 0, 0.3, 0.5, 0.3, 0),
+              nrow = 3,
+              dimnames = list(c("A","B","C"), c("A","B","C")))
+  ord <- taxo_ordinate(stats::as.dist(m))
+  expect_no_error(plot(ord))
+  expect_invisible(plot(ord))
+})
+
 # ── Network tests (skipped on CRAN) ──────────────────────────────────────────
 
 test_that("get_lineage returns correct lineage for Velociraptor", {
@@ -888,4 +1049,109 @@ test_that("get_lineage_by_id returns NULL when all links are filtered out", {
   mockery::stub(get_lineage_by_id, "httr::content", function(...) fake_html)
   result <- get_lineage_by_id("99999")
   expect_null(result)
+})
+
+test_that("taxo_cluster returns correct S3 class", {
+  mockery::stub(taxo_cluster, "distance_matrix", function(...) {
+    m <- matrix(c(0, 0.2, 0.5, 0.2, 0, 0.3, 0.5, 0.3, 0),
+                nrow = 3,
+                dimnames = list(c("A", "B", "C"), c("A", "B", "C")))
+    stats::as.dist(m)
+  })
+  result <- taxo_cluster(c("A", "B", "C"), progress = FALSE)
+  expect_s3_class(result, "taxodist_cluster")
+})
+
+test_that("taxo_cluster result contains hclust and dist", {
+  mockery::stub(taxo_cluster, "distance_matrix", function(...) {
+    m <- matrix(c(0, 0.2, 0.5, 0.2, 0, 0.3, 0.5, 0.3, 0),
+                nrow = 3,
+                dimnames = list(c("A", "B", "C"), c("A", "B", "C")))
+    stats::as.dist(m)
+  })
+  result <- taxo_cluster(c("A", "B", "C"), progress = FALSE)
+  expect_s3_class(result$hclust, "hclust")
+  expect_s3_class(result$dist, "dist")
+})
+
+test_that("taxo_cluster accepts a dist object directly", {
+  m <- matrix(c(0, 0.2, 0.5, 0.2, 0, 0.3, 0.5, 0.3, 0),
+              nrow = 3,
+              dimnames = list(c("A", "B", "C"), c("A", "B", "C")))
+  d <- stats::as.dist(m)
+  result <- taxo_cluster(d)
+  expect_s3_class(result, "taxodist_cluster")
+})
+
+test_that("taxo_ordinate returns correct S3 class", {
+  mockery::stub(taxo_ordinate, "distance_matrix", function(...) {
+    m <- matrix(c(0, 0.2, 0.5, 0.2, 0, 0.3, 0.5, 0.3, 0),
+                nrow = 3,
+                dimnames = list(c("A","B","C"), c("A","B","C")))
+    stats::as.dist(m)
+  })
+  result <- taxo_ordinate(c("A", "B", "C"), progress = FALSE)
+  expect_s3_class(result, "taxodist_ord")
+})
+
+test_that("taxo_ordinate result contains points, dist and GOF", {
+  mockery::stub(taxo_ordinate, "distance_matrix", function(...) {
+    m <- matrix(c(0, 0.2, 0.5, 0.2, 0, 0.3, 0.5, 0.3, 0),
+                nrow = 3,
+                dimnames = list(c("A","B","C"), c("A","B","C")))
+    stats::as.dist(m)
+  })
+  result <- taxo_ordinate(c("A", "B", "C"), progress = FALSE)
+  expect_true(!is.null(result$points))
+  expect_s3_class(result$dist, "dist")
+  expect_true(!is.null(result$GOF))
+})
+
+test_that("taxo_ordinate points matrix has correct dimensions", {
+  mockery::stub(taxo_ordinate, "distance_matrix", function(...) {
+    m <- matrix(c(0, 0.2, 0.5, 0.2, 0, 0.3, 0.5, 0.3, 0),
+                nrow = 3,
+                dimnames = list(c("A","B","C"), c("A","B","C")))
+    stats::as.dist(m)
+  })
+  result <- taxo_ordinate(c("A", "B", "C"), k = 2, progress = FALSE)
+  expect_equal(ncol(result$points), 2)
+  expect_equal(nrow(result$points), 3)
+})
+
+test_that("taxo_ordinate accepts a dist object directly", {
+  m <- matrix(c(0, 0.2, 0.5, 0.2, 0, 0.3, 0.5, 0.3, 0),
+              nrow = 3,
+              dimnames = list(c("A","B","C"), c("A","B","C")))
+  d <- stats::as.dist(m)
+  result <- taxo_ordinate(d, k = 2)
+  expect_s3_class(result, "taxodist_ord")
+})
+
+test_that("summary.taxodist_ord computes variance and handles missing eigenvalues", {
+  mock_ord <- structure(list(
+    points = matrix(1:4, ncol = 2, dimnames = list(c("A", "B"), NULL)),
+    dist   = stats::dist(1:2),
+    GOF    = c(0.95, 0.95),
+    eig    = c(2.0, 1.0, -0.5)
+  ), class = "taxodist_ord")
+  out <- capture.output(res <- summary(mock_ord))
+  expect_s3_class(res, "data.frame")
+  expect_equal(nrow(res), 2)
+  expect_equal(res$Axis, c("PC1", "PC2"))
+  expect_equal(round(res$Variance_Pct[1]), 67)
+  expect_equal(round(res$Variance_Pct[2]), 33)
+  mock_bad <- mock_ord
+  mock_bad$eig <- NULL
+  expect_message(res_bad <- summary(mock_bad), "Eigenvalues not found")
+  expect_null(res_bad)
+})
+
+test_that("taxo_heatmap plots correctly and returns dist invisibly", {
+  mock_dist <- stats::dist(matrix(1:4, ncol = 2))
+  attr(mock_dist, "Labels") <- c("TaxonA", "TaxonB")
+  pdf(file = NULL)
+  res <- taxo_heatmap(mock_dist)
+  dev.off()
+  expect_s3_class(res, "dist")
 })
