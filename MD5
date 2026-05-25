@@ -1,10 +1,10 @@
-69bcbb56f02eeed9dfe52ec078e8b293 *DESCRIPTION
+e477513e7f7d7cbc0eafe6f2e3444e84 *DESCRIPTION
 6014f6fe8d14889b136dc3605594602e *NAMESPACE
-fcd8bab3060f9609bb183a4ba080a125 *NEWS.md
-f29986fa56390079299a06e743461df2 *R/distance.R
-46bbf6cc906e0c0c4465cc808c066581 *R/fetch.R
+5d6efdcd9e477b5a9665f2bbcc85b725 *NEWS.md
+d87be7ebabcc6e284b67e7c3c6823d42 *R/distance.R
+d6ef1f15c8deb1d3f86c2f84937a866e *R/fetch.R
 5ebaf7773b09d13ef2592ce634f132bc *R/taxodist-package.R
-16467b6a0e4f264d5b99b6c6dac64c63 *R/utils.R
+166dc58b619fa6a750a24d9bdefc5b3d *R/utils.R
 877710d1858c5540509cb3eec03f82c7 *README.md
 b208e41755ad2e1607d2d997b6f5107f *build/vignette.rds
 dd54bcf9f46ea3e7f952405f80f08657 *inst/WORDLIST
@@ -42,8 +42,7 @@ fa5894557f6873c72e5961fa6dab8b62 *man/taxo_ordinate.Rd
 84a8321f61a5dcda8632cac421afd8f0 *man/taxo_search.Rd
 afbc3fddd904c5f9b8725d6afc78a441 *man/taxodist-package.Rd
 f44ee78d78b0620e439fb937bf7ec845 *tests/testthat.R
-5432ae920c32fecace56380f658e25e9 *tests/testthat/Rplots.pdf
 c9f23eefbf9e2d364cb7de2c416b2f9d *tests/testthat/helper.R
-da0dbe1391971a20d1dd2deed3520dfd *tests/testthat/test-distance.R
+a3be60ab1fe29abca1671d49374a106d *tests/testthat/test-distance.R
 63b662d113f0c007c10546d4568e2250 *vignettes/introduction.Rmd
 284f203d020152006bfe2abe21e535a4 *vignettes/statistical-applications.Rmd
