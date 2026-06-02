@@ -1,6 +1,7 @@
 Package: taxodist
 Title: Taxonomic Distance and Phylogenetic Lineage Computation
-Version: 0.4.0
+Version: 0.5.0
+LazyData: true
 Authors@R: person("Rodrigo Fonseca", "Villa", email = "rodrigo03.villa@gmail.com",
            role = c("aut", "cre"),
            comment = c(ORCID = "0009-0005-2938-2270"))
@@ -27,12 +28,12 @@ Depends: R (>= 4.1.0)
 Imports: httr (>= 1.4.0), rvest (>= 1.0.0), stringr (>= 1.4.0), purrr
         (>= 0.3.0), cli (>= 3.0.0), utils, stats, graphics
 Suggests: testthat (>= 3.0.0), mockery, knitr, rmarkdown, xml2, ape,
-        vegan
+        vegan, webmockr
 VignetteBuilder: knitr
 Config/testthat/edition: 3
 NeedsCompilation: no
-Packaged: 2026-05-25 12:11:42 UTC; rodri
+Packaged: 2026-06-02 19:13:41 UTC; rodri
 Author: Rodrigo Fonseca Villa [aut, cre] (ORCID:
     <https://orcid.org/0009-0005-2938-2270>)
 Repository: CRAN
-Date/Publication: 2026-05-25 15:00:08 UTC
+Date/Publication: 2026-06-02 19:30:02 UTC
