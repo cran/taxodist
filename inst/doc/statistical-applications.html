@@ -340,274 +340,469 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 
 
 
-<p>The <code>taxodist</code> distance matrix is a standard
-<code>dist</code> object and integrates directly with the R ecosystem
-for multivariate analysis. This vignette shows how to use it alongside
-<code>vegan</code> and <code>ape</code> for ecological and phylogenetic
-analyses. All examples use a set of threatened mammals from Brazil
-spanning five broad taxonomic groups.</p>
-<hr />
-<div id="example-dataset-threatened-mammals-of-brazil" class="section level2">
-<h2>Example dataset: threatened mammals of Brazil</h2>
-<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a>taxa_brazil <span class="ot">&lt;-</span> <span class="fu">c</span>(</span>
-<span id="cb1-2"><a href="#cb1-2" tabindex="-1"></a>  <span class="st">&quot;Priodontes&quot;</span>, <span class="st">&quot;Myrmecophaga&quot;</span>, <span class="st">&quot;Chrysocyon&quot;</span>, <span class="st">&quot;Tapirus&quot;</span>, <span class="st">&quot;Didelphis&quot;</span>,</span>
-<span id="cb1-3"><a href="#cb1-3" tabindex="-1"></a>  <span class="st">&quot;Leontopithecus&quot;</span>, <span class="st">&quot;Brachyteles&quot;</span>,</span>
-<span id="cb1-4"><a href="#cb1-4" tabindex="-1"></a>  <span class="st">&quot;Panthera&quot;</span>, <span class="st">&quot;Pteronura&quot;</span>, <span class="st">&quot;Puma&quot;</span>,</span>
-<span id="cb1-5"><a href="#cb1-5" tabindex="-1"></a>  <span class="st">&quot;Sotalia&quot;</span>, <span class="st">&quot;Pontoporia&quot;</span>,</span>
-<span id="cb1-6"><a href="#cb1-6" tabindex="-1"></a>  <span class="st">&quot;Trichechus&quot;</span>, <span class="st">&quot;Mazama&quot;</span>, <span class="st">&quot;Blastocerus&quot;</span></span>
-<span id="cb1-7"><a href="#cb1-7" tabindex="-1"></a>)</span></code></pre></div>
-<p>The dataset covers xenarthrans (<code>Priodontes</code>,
-<code>Myrmecophaga</code>), a marsupial (<code>Didelphis</code>),
-ungulates (<code>Tapirus</code>, <code>Mazama</code>,
-<code>Blastocerus</code>), primates (<code>Leontopithecus</code>,
-<code>Brachyteles</code>), carnivores (<code>Chrysocyon</code>,
-<code>Panthera</code>, <code>Pteronura</code>, <code>Puma</code>),
-cetaceans (<code>Sotalia</code>, <code>Pontoporia</code>), and a
-sirenian (<code>Trichechus</code>).</p>
-<p>The pairwise distance matrix is computed with a single call. Lineages
-are cached after the first retrieval, so subsequent analyses on the same
-taxa are instantaneous.</p>
-<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a><span class="fu">library</span>(taxodist)</span>
-<span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a>mat <span class="ot">&lt;-</span> <span class="fu">distance_matrix</span>(taxa_brazil)</span>
-<span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a><span class="fu">print</span>(mat)</span>
-<span id="cb2-4"><a href="#cb2-4" tabindex="-1"></a><span class="co">#&gt;                Priodontes Myrmecophaga Chrysocyon    Tapirus  Didelphis</span></span>
-<span id="cb2-5"><a href="#cb2-5" tabindex="-1"></a><span class="co">#&gt; Myrmecophaga   0.01639344</span></span>
-<span id="cb2-6"><a href="#cb2-6" tabindex="-1"></a><span class="co">#&gt; Chrysocyon     0.01694915   0.01694915</span></span>
-<span id="cb2-7"><a href="#cb2-7" tabindex="-1"></a><span class="co">#&gt; Tapirus        0.01694915   0.01694915 0.01587302</span></span>
-<span id="cb2-8"><a href="#cb2-8" tabindex="-1"></a><span class="co">#&gt; Didelphis      0.01754386   0.01754386 0.01754386 0.01754386</span></span>
-<span id="cb2-9"><a href="#cb2-9" tabindex="-1"></a><span class="co">#&gt; Leontopithecus 0.01694915   0.01694915 0.01666667 0.01666667 0.01754386</span></span>
-<span id="cb2-10"><a href="#cb2-10" tabindex="-1"></a><span class="co">#&gt; Brachyteles    0.01694915   0.01694915 0.01666667 0.01666667 0.01754386</span></span>
-<span id="cb2-11"><a href="#cb2-11" tabindex="-1"></a><span class="co">#&gt; Panthera       0.01694915   0.01694915 0.01492537 0.01587302 0.01754386</span></span>
-<span id="cb2-12"><a href="#cb2-12" tabindex="-1"></a><span class="co">#&gt; Pteronura      0.01694915   0.01694915 0.01470588 0.01587302 0.01754386</span></span>
-<span id="cb2-13"><a href="#cb2-13" tabindex="-1"></a><span class="co">#&gt; Puma           0.01694915   0.01694915 0.01492537 0.01587302 0.01754386</span></span>
-<span id="cb2-14"><a href="#cb2-14" tabindex="-1"></a><span class="co">#&gt; Sotalia        0.01694915   0.01694915 0.01587302 0.01562500 0.01754386</span></span>
-<span id="cb2-15"><a href="#cb2-15" tabindex="-1"></a><span class="co">#&gt; Pontoporia     0.01694915   0.01694915 0.01587302 0.01562500 0.01754386</span></span>
-<span id="cb2-16"><a href="#cb2-16" tabindex="-1"></a><span class="co">#&gt; Trichechus     0.01666667   0.01666667 0.01694915 0.01694915 0.01754386</span></span>
-<span id="cb2-17"><a href="#cb2-17" tabindex="-1"></a><span class="co">#&gt; Mazama         0.01694915   0.01694915 0.01587302 0.01562500 0.01754386</span></span>
-<span id="cb2-18"><a href="#cb2-18" tabindex="-1"></a><span class="co">#&gt; Blastocerus    0.01694915   0.01694915 0.01587302 0.01562500 0.01754386</span></span></code></pre></div>
-<p><code>Didelphis</code> shows the largest distances to all other taxa
-(0.01754), consistent with the early divergence of marsupials from
-placental mammals. Carnivores (<code>Panthera</code>,
-<code>Pteronura</code>, <code>Puma</code>) show smaller distances among
-themselves, reflecting a more recent common ancestor within
-Carnivora.</p>
-<hr />
+<div id="overview" class="section level2">
+<h2>Overview</h2>
+<p>A distance matrix produced by <code>taxodist</code> is a base R
+<code>dist</code> object. It can therefore be supplied to clustering,
+ordination, permutation tests, and taxonomic-diversity functions that
+accept pairwise dissimilarities.</p>
+<p>These analyses operate on distances derived from classification
+depth. They do not convert the source hierarchy into evolutionary time,
+genetic distance, or phylogenetic branch length. Results should be
+described as analyses of taxonomic hierarchy distance.</p>
+<p>This vignette uses the reference matrix stored in
+<code>taxobase</code>. The matrix is built in advance from The
+Taxonomicon and permits the vignette to run without network access.</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a>taxa <span class="ot">&lt;-</span> taxobase<span class="sc">$</span>statistical_taxa</span>
+<span id="cb1-2"><a href="#cb1-2" tabindex="-1"></a>mat <span class="ot">&lt;-</span> taxobase<span class="sc">$</span>statistical_matrix</span>
+<span id="cb1-3"><a href="#cb1-3" tabindex="-1"></a></span>
+<span id="cb1-4"><a href="#cb1-4" tabindex="-1"></a>taxobase<span class="sc">$</span>metadata</span>
+<span id="cb1-5"><a href="#cb1-5" tabindex="-1"></a><span class="co">#&gt; $source</span></span>
+<span id="cb1-6"><a href="#cb1-6" tabindex="-1"></a><span class="co">#&gt; [1] &quot;The Taxonomicon&quot;</span></span>
+<span id="cb1-7"><a href="#cb1-7" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb1-8"><a href="#cb1-8" tabindex="-1"></a><span class="co">#&gt; $source_url</span></span>
+<span id="cb1-9"><a href="#cb1-9" tabindex="-1"></a><span class="co">#&gt; [1] &quot;http://taxonomicon.taxonomy.nl&quot;</span></span>
+<span id="cb1-10"><a href="#cb1-10" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb1-11"><a href="#cb1-11" tabindex="-1"></a><span class="co">#&gt; $generated_on</span></span>
+<span id="cb1-12"><a href="#cb1-12" tabindex="-1"></a><span class="co">#&gt; [1] &quot;2026-08-06&quot;</span></span>
+<span id="cb1-13"><a href="#cb1-13" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb1-14"><a href="#cb1-14" tabindex="-1"></a><span class="co">#&gt; $package_version</span></span>
+<span id="cb1-15"><a href="#cb1-15" tabindex="-1"></a><span class="co">#&gt; [1] &quot;0.6.0&quot;</span></span>
+<span id="cb1-16"><a href="#cb1-16" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb1-17"><a href="#cb1-17" tabindex="-1"></a><span class="co">#&gt; $distance_definition</span></span>
+<span id="cb1-18"><a href="#cb1-18" tabindex="-1"></a><span class="co">#&gt; [1] &quot;0 for identical nodes; otherwise 1 / depth(MRCA)&quot;</span></span>
+<span id="cb1-19"><a href="#cb1-19" tabindex="-1"></a><span class="fu">length</span>(taxa)</span>
+<span id="cb1-20"><a href="#cb1-20" tabindex="-1"></a><span class="co">#&gt; [1] 15</span></span>
+<span id="cb1-21"><a href="#cb1-21" tabindex="-1"></a><span class="fu">inherits</span>(mat, <span class="st">&quot;dist&quot;</span>)</span>
+<span id="cb1-22"><a href="#cb1-22" tabindex="-1"></a><span class="co">#&gt; [1] TRUE</span></span>
+<span id="cb1-23"><a href="#cb1-23" tabindex="-1"></a><span class="fu">identical</span>(<span class="fu">attr</span>(mat, <span class="st">&quot;Labels&quot;</span>), taxa)</span>
+<span id="cb1-24"><a href="#cb1-24" tabindex="-1"></a><span class="co">#&gt; [1] TRUE</span></span></code></pre></div>
+<p>The example contains 15 mammalian genera representing several broad
+taxonomic groups. The selection is illustrative and is not intended to
+constitute a formal ecological sample or a conservation-status
+dataset.</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a>taxa</span>
+<span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a><span class="co">#&gt;  [1] &quot;Priodontes&quot;     &quot;Myrmecophaga&quot;   &quot;Chrysocyon&quot;     &quot;Tapirus&quot;       </span></span>
+<span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a><span class="co">#&gt;  [5] &quot;Didelphis&quot;      &quot;Leontopithecus&quot; &quot;Brachyteles&quot;    &quot;Panthera&quot;      </span></span>
+<span id="cb2-4"><a href="#cb2-4" tabindex="-1"></a><span class="co">#&gt;  [9] &quot;Pteronura&quot;      &quot;Puma&quot;           &quot;Sotalia&quot;        &quot;Pontoporia&quot;    </span></span>
+<span id="cb2-5"><a href="#cb2-5" tabindex="-1"></a><span class="co">#&gt; [13] &quot;Trichechus&quot;     &quot;Mazama&quot;         &quot;Blastocerus&quot;</span></span></code></pre></div>
 </div>
-<div id="phylogenetic-tree-with-ape" class="section level2">
-<h2>Phylogenetic tree with <code>ape</code></h2>
-<p><code>taxo_cluster()</code> performs hierarchical clustering on the
-distance matrix and returns an object that <code>ape</code> can convert
-directly to a <code>phylo</code> tree for publication-quality
-visualisation.</p>
-<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a><span class="fu">library</span>(ape)</span>
-<span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a></span>
-<span id="cb3-3"><a href="#cb3-3" tabindex="-1"></a>cl   <span class="ot">&lt;-</span> <span class="fu">taxo_cluster</span>(taxa_brazil)</span>
-<span id="cb3-4"><a href="#cb3-4" tabindex="-1"></a>tree <span class="ot">&lt;-</span> ape<span class="sc">::</span><span class="fu">as.phylo</span>(cl<span class="sc">$</span>hclust)</span>
-<span id="cb3-5"><a href="#cb3-5" tabindex="-1"></a></span>
-<span id="cb3-6"><a href="#cb3-6" tabindex="-1"></a><span class="fu">plot</span>(tree,</span>
-<span id="cb3-7"><a href="#cb3-7" tabindex="-1"></a>     <span class="at">main      =</span> <span class="st">&quot;Threatened Mammals of Brazil&quot;</span>,</span>
-<span id="cb3-8"><a href="#cb3-8" tabindex="-1"></a>     <span class="at">cex       =</span> <span class="fl">0.85</span>,</span>
-<span id="cb3-9"><a href="#cb3-9" tabindex="-1"></a>     <span class="at">tip.color =</span> <span class="st">&quot;gray20&quot;</span>)</span></code></pre></div>
-<p>The <code>phylo</code> object is fully compatible with all
-<code>ape</code> tree manipulation and plotting functions, including
-<code>nodelabels()</code>, <code>edgelabels()</code>, and export to
-Newick format via <code>write.tree()</code>.</p>
-<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a>ape<span class="sc">::</span><span class="fu">write.tree</span>(tree, <span class="at">file =</span> <span class="st">&quot;taxa_brazil.nwk&quot;</span>)</span></code></pre></div>
-<hr />
+<div id="inspecting-the-distance-matrix" class="section level2">
+<h2>Inspecting the distance matrix</h2>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a><span class="fu">summary</span>(<span class="fu">as.vector</span>(mat))</span>
+<span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a><span class="co">#&gt;    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. </span></span>
+<span id="cb3-3"><a href="#cb3-3" tabindex="-1"></a><span class="co">#&gt; 0.01370 0.01538 0.01613 0.01593 0.01639 0.01695</span></span>
+<span id="cb3-4"><a href="#cb3-4" tabindex="-1"></a><span class="fu">range</span>(mat)</span>
+<span id="cb3-5"><a href="#cb3-5" tabindex="-1"></a><span class="co">#&gt; [1] 0.01369863 0.01694915</span></span>
+<span id="cb3-6"><a href="#cb3-6" tabindex="-1"></a></span>
+<span id="cb3-7"><a href="#cb3-7" tabindex="-1"></a><span class="fu">round</span>(</span>
+<span id="cb3-8"><a href="#cb3-8" tabindex="-1"></a>  <span class="fu">as.matrix</span>(mat)[<span class="dv">1</span><span class="sc">:</span><span class="dv">6</span>, <span class="dv">1</span><span class="sc">:</span><span class="dv">6</span>],</span>
+<span id="cb3-9"><a href="#cb3-9" tabindex="-1"></a>  <span class="at">digits =</span> <span class="dv">5</span></span>
+<span id="cb3-10"><a href="#cb3-10" tabindex="-1"></a>)</span>
+<span id="cb3-11"><a href="#cb3-11" tabindex="-1"></a><span class="co">#&gt;                Priodontes Myrmecophaga Chrysocyon Tapirus Didelphis</span></span>
+<span id="cb3-12"><a href="#cb3-12" tabindex="-1"></a><span class="co">#&gt; Priodontes        0.00000      0.01587    0.01639 0.01639   0.01695</span></span>
+<span id="cb3-13"><a href="#cb3-13" tabindex="-1"></a><span class="co">#&gt; Myrmecophaga      0.01587      0.00000    0.01639 0.01639   0.01695</span></span>
+<span id="cb3-14"><a href="#cb3-14" tabindex="-1"></a><span class="co">#&gt; Chrysocyon        0.01639      0.01639    0.00000 0.01538   0.01695</span></span>
+<span id="cb3-15"><a href="#cb3-15" tabindex="-1"></a><span class="co">#&gt; Tapirus           0.01639      0.01639    0.01538 0.00000   0.01695</span></span>
+<span id="cb3-16"><a href="#cb3-16" tabindex="-1"></a><span class="co">#&gt; Didelphis         0.01695      0.01695    0.01695 0.01695   0.00000</span></span>
+<span id="cb3-17"><a href="#cb3-17" tabindex="-1"></a><span class="co">#&gt; Leontopithecus    0.01639      0.01639    0.01613 0.01613   0.01695</span></span>
+<span id="cb3-18"><a href="#cb3-18" tabindex="-1"></a><span class="co">#&gt;                Leontopithecus</span></span>
+<span id="cb3-19"><a href="#cb3-19" tabindex="-1"></a><span class="co">#&gt; Priodontes            0.01639</span></span>
+<span id="cb3-20"><a href="#cb3-20" tabindex="-1"></a><span class="co">#&gt; Myrmecophaga          0.01639</span></span>
+<span id="cb3-21"><a href="#cb3-21" tabindex="-1"></a><span class="co">#&gt; Chrysocyon            0.01613</span></span>
+<span id="cb3-22"><a href="#cb3-22" tabindex="-1"></a><span class="co">#&gt; Tapirus               0.01613</span></span>
+<span id="cb3-23"><a href="#cb3-23" tabindex="-1"></a><span class="co">#&gt; Didelphis             0.01695</span></span>
+<span id="cb3-24"><a href="#cb3-24" tabindex="-1"></a><span class="co">#&gt; Leontopithecus        0.00000</span></span></code></pre></div>
+<p>For this dataset, pairwise distances range from approximately 0.01370
+to 0.01695. Smaller values indicate a deeper MRCA in the source
+hierarchy.</p>
+<p>The absolute scale depends on classification resolution. A value such
+as 0.014 should not be interpreted as a proportion of evolutionary
+divergence.</p>
 </div>
-<div id="taxonomic-diversity-with-vegan" class="section level2">
-<h2>Taxonomic diversity with <code>vegan</code></h2>
-<div id="clarke-and-warwick-indices-taxondive" class="section level3">
-<h3>Clarke and Warwick indices (<code>taxondive</code>)</h3>
-<p><code>vegan::taxondive()</code> computes a family of taxonomic
-diversity indices (Clarke and Warwick 1998, 2001) from a community
-matrix and a taxonomic distance matrix. These indices capture not just
-species richness but how distantly related the species in a community
-are: a community of closely related species scores lower than one with
-the same richness but spanning multiple orders.</p>
-<p>The function expects a community matrix (sites x species) and the
-<code>dist</code> object from <code>distance_matrix()</code>. Here we
-define three hypothetical communities, each dominated by one broad
-taxonomic group.</p>
-<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">123</span>)</span>
-<span id="cb5-2"><a href="#cb5-2" tabindex="-1"></a><span class="fu">library</span>(vegan)</span>
-<span id="cb5-3"><a href="#cb5-3" tabindex="-1"></a></span>
-<span id="cb5-4"><a href="#cb5-4" tabindex="-1"></a>comm <span class="ot">&lt;-</span> <span class="fu">matrix</span>(<span class="fu">c</span>(</span>
-<span id="cb5-5"><a href="#cb5-5" tabindex="-1"></a>  <span class="dv">1</span>, <span class="dv">1</span>, <span class="dv">0</span>, <span class="dv">0</span>, <span class="dv">1</span>, <span class="dv">0</span>, <span class="dv">0</span>, <span class="dv">0</span>, <span class="dv">0</span>, <span class="dv">0</span>, <span class="dv">0</span>, <span class="dv">0</span>, <span class="dv">0</span>, <span class="dv">0</span>, <span class="dv">0</span>,   <span class="co"># xenarthrans + marsupial</span></span>
-<span id="cb5-6"><a href="#cb5-6" tabindex="-1"></a>  <span class="dv">0</span>, <span class="dv">0</span>, <span class="dv">0</span>, <span class="dv">0</span>, <span class="dv">0</span>, <span class="dv">1</span>, <span class="dv">1</span>, <span class="dv">1</span>, <span class="dv">1</span>, <span class="dv">1</span>, <span class="dv">0</span>, <span class="dv">0</span>, <span class="dv">0</span>, <span class="dv">0</span>, <span class="dv">0</span>,   <span class="co"># primates + carnivores</span></span>
-<span id="cb5-7"><a href="#cb5-7" tabindex="-1"></a>  <span class="dv">0</span>, <span class="dv">0</span>, <span class="dv">0</span>, <span class="dv">0</span>, <span class="dv">0</span>, <span class="dv">0</span>, <span class="dv">0</span>, <span class="dv">0</span>, <span class="dv">0</span>, <span class="dv">0</span>, <span class="dv">1</span>, <span class="dv">1</span>, <span class="dv">1</span>, <span class="dv">1</span>, <span class="dv">1</span>    <span class="co"># cetaceans + sirenian + ungulates</span></span>
-<span id="cb5-8"><a href="#cb5-8" tabindex="-1"></a>), <span class="at">nrow =</span> <span class="dv">3</span>, <span class="at">byrow =</span> <span class="cn">TRUE</span>)</span>
-<span id="cb5-9"><a href="#cb5-9" tabindex="-1"></a></span>
-<span id="cb5-10"><a href="#cb5-10" tabindex="-1"></a><span class="fu">colnames</span>(comm) <span class="ot">&lt;-</span> taxa_brazil</span>
-<span id="cb5-11"><a href="#cb5-11" tabindex="-1"></a><span class="fu">rownames</span>(comm) <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">&quot;community_A&quot;</span>, <span class="st">&quot;community_B&quot;</span>, <span class="st">&quot;community_C&quot;</span>)</span>
-<span id="cb5-12"><a href="#cb5-12" tabindex="-1"></a></span>
-<span id="cb5-13"><a href="#cb5-13" tabindex="-1"></a>vegan<span class="sc">::</span><span class="fu">taxondive</span>(comm, mat)</span>
-<span id="cb5-14"><a href="#cb5-14" tabindex="-1"></a><span class="co">#&gt;               Species      Delta       Delta*     Lambda+     Delta+     S Delta+</span></span>
-<span id="cb5-15"><a href="#cb5-15" tabindex="-1"></a><span class="co">#&gt; community_A  3.0000e+00  1.7160e-02  1.7160e-02  2.9410e-07  1.7160e-02   0.0515</span></span>
-<span id="cb5-16"><a href="#cb5-16" tabindex="-1"></a><span class="co">#&gt; community_B  5.0000e+00  1.5905e-02  1.5905e-02  8.8325e-07  1.5905e-02   0.0795</span></span>
-<span id="cb5-17"><a href="#cb5-17" tabindex="-1"></a><span class="co">#&gt; community_C  5.0000e+00  1.5750e-02  1.5750e-02  1.1834e-06  1.5750e-02   0.0788</span></span>
-<span id="cb5-18"><a href="#cb5-18" tabindex="-1"></a><span class="co">#&gt; Expected                -9.9265e-02  1.6544e-02              1.6457e-02         </span></span></code></pre></div>
-<p>The key indices are:</p>
-<p><strong>Delta</strong> (<span class="math inline">\(\Delta\)</span>):
-mean taxonomic distance between all pairs of species in the
+<div id="hierarchical-clustering" class="section level2">
+<h2>Hierarchical clustering</h2>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a>clustering <span class="ot">&lt;-</span> <span class="fu">taxo_cluster</span>(mat, <span class="at">method =</span> <span class="st">&quot;average&quot;</span>)</span>
+<span id="cb4-2"><a href="#cb4-2" tabindex="-1"></a></span>
+<span id="cb4-3"><a href="#cb4-3" tabindex="-1"></a>clustering<span class="sc">$</span>hclust</span>
+<span id="cb4-4"><a href="#cb4-4" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb4-5"><a href="#cb4-5" tabindex="-1"></a><span class="co">#&gt; Call:</span></span>
+<span id="cb4-6"><a href="#cb4-6" tabindex="-1"></a><span class="co">#&gt; stats::hclust(d = d, method = method)</span></span>
+<span id="cb4-7"><a href="#cb4-7" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb4-8"><a href="#cb4-8" tabindex="-1"></a><span class="co">#&gt; Cluster method   : average </span></span>
+<span id="cb4-9"><a href="#cb4-9" tabindex="-1"></a><span class="co">#&gt; Number of objects: 15</span></span>
+<span id="cb4-10"><a href="#cb4-10" tabindex="-1"></a><span class="fu">summary</span>(clustering<span class="sc">$</span>hclust<span class="sc">$</span>height)</span>
+<span id="cb4-11"><a href="#cb4-11" tabindex="-1"></a><span class="co">#&gt;    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. </span></span>
+<span id="cb4-12"><a href="#cb4-12" tabindex="-1"></a><span class="co">#&gt; 0.01370 0.01429 0.01504 0.01509 0.01607 0.01695</span></span>
+<span id="cb4-13"><a href="#cb4-13" tabindex="-1"></a></span>
+<span id="cb4-14"><a href="#cb4-14" tabindex="-1"></a><span class="fu">plot</span>(</span>
+<span id="cb4-15"><a href="#cb4-15" tabindex="-1"></a>  clustering,</span>
+<span id="cb4-16"><a href="#cb4-16" tabindex="-1"></a>  <span class="at">main =</span> <span class="st">&quot;Average-linkage clustering of taxonomic hierarchy distances&quot;</span>,</span>
+<span id="cb4-17"><a href="#cb4-17" tabindex="-1"></a>  <span class="at">xlab =</span> <span class="st">&quot;&quot;</span>,</span>
+<span id="cb4-18"><a href="#cb4-18" tabindex="-1"></a>  <span class="at">sub =</span> <span class="st">&quot;&quot;</span></span>
+<span id="cb4-19"><a href="#cb4-19" tabindex="-1"></a>)</span></code></pre></div>
+<p><img src="data:image/png;base64,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" style="display: block; margin: auto;" /></p>
+<p>Average-linkage clustering summarizes similarities in the supplied
+matrix. The topology and node heights also depend on the selected
+linkage method.</p>
+<p>The resulting dendrogram is not an independently inferred
+phylogenetic tree. It contains no substitution model, fossil
+calibration, branch-length estimation, or statistical reconstruction of
+evolutionary history.</p>
+<div id="tree-representation-with-ape" class="section level3">
+<h3>Tree representation with ape</h3>
+<p>An <code>hclust</code> object can be converted to the
+<code>phylo</code> data structure used by <code>ape</code>. This can be
+useful for plotting and file-format interoperability.</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" tabindex="-1"></a>tree <span class="ot">&lt;-</span> ape<span class="sc">::</span><span class="fu">as.phylo</span>(clustering<span class="sc">$</span>hclust)</span>
+<span id="cb5-2"><a href="#cb5-2" tabindex="-1"></a></span>
+<span id="cb5-3"><a href="#cb5-3" tabindex="-1"></a><span class="fu">plot</span>(</span>
+<span id="cb5-4"><a href="#cb5-4" tabindex="-1"></a>  tree,</span>
+<span id="cb5-5"><a href="#cb5-5" tabindex="-1"></a>  <span class="at">main =</span> <span class="st">&quot;Tree representation of a taxonomic distance dendrogram&quot;</span>,</span>
+<span id="cb5-6"><a href="#cb5-6" tabindex="-1"></a>  <span class="at">cex =</span> <span class="fl">0.8</span></span>
+<span id="cb5-7"><a href="#cb5-7" tabindex="-1"></a>)</span></code></pre></div>
+<p><img src="data:image/png;base64,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" style="display: block; margin: auto;" /></p>
+<p>Conversion to class <code>phylo</code> changes the representation of
+the clustering result, not its scientific interpretation. The object
+remains derived from a classification-based distance matrix.</p>
+<p>Export can be performed when required:</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" tabindex="-1"></a>ape<span class="sc">::</span><span class="fu">write.tree</span>(tree, <span class="at">file =</span> <span class="st">&quot;taxonomic-distance-dendrogram.nwk&quot;</span>)</span></code></pre></div>
+</div>
+</div>
+<div id="principal-coordinates-analysis" class="section level2">
+<h2>Principal coordinates analysis</h2>
+<p>Principal coordinates analysis, or classical multidimensional
+scaling, represents pairwise dissimilarities as coordinates in a
+Euclidean space (Gower, 1966).</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" tabindex="-1"></a>ordination <span class="ot">&lt;-</span> <span class="fu">taxo_ordinate</span>(mat, <span class="at">k =</span> <span class="dv">2</span>)</span>
+<span id="cb7-2"><a href="#cb7-2" tabindex="-1"></a></span>
+<span id="cb7-3"><a href="#cb7-3" tabindex="-1"></a>positive_eigenvalues <span class="ot">&lt;-</span> ordination<span class="sc">$</span>eig[ordination<span class="sc">$</span>eig <span class="sc">&gt;</span> <span class="dv">0</span>]</span>
+<span id="cb7-4"><a href="#cb7-4" tabindex="-1"></a>variance_percent <span class="ot">&lt;-</span> <span class="dv">100</span> <span class="sc">*</span> positive_eigenvalues <span class="sc">/</span> <span class="fu">sum</span>(positive_eigenvalues)</span>
+<span id="cb7-5"><a href="#cb7-5" tabindex="-1"></a></span>
+<span id="cb7-6"><a href="#cb7-6" tabindex="-1"></a>ordination_summary <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(</span>
+<span id="cb7-7"><a href="#cb7-7" tabindex="-1"></a>  <span class="at">Axis =</span> <span class="fu">c</span>(<span class="st">&quot;PC1&quot;</span>, <span class="st">&quot;PC2&quot;</span>),</span>
+<span id="cb7-8"><a href="#cb7-8" tabindex="-1"></a>  <span class="at">Eigenvalue =</span> ordination<span class="sc">$</span>eig[<span class="dv">1</span><span class="sc">:</span><span class="dv">2</span>],</span>
+<span id="cb7-9"><a href="#cb7-9" tabindex="-1"></a>  <span class="at">Variance_percent =</span> variance_percent[<span class="dv">1</span><span class="sc">:</span><span class="dv">2</span>],</span>
+<span id="cb7-10"><a href="#cb7-10" tabindex="-1"></a>  <span class="at">Cumulative_percent =</span> <span class="fu">cumsum</span>(variance_percent)[<span class="dv">1</span><span class="sc">:</span><span class="dv">2</span>]</span>
+<span id="cb7-11"><a href="#cb7-11" tabindex="-1"></a>)</span>
+<span id="cb7-12"><a href="#cb7-12" tabindex="-1"></a></span>
+<span id="cb7-13"><a href="#cb7-13" tabindex="-1"></a>ordination_summary</span>
+<span id="cb7-14"><a href="#cb7-14" tabindex="-1"></a><span class="co">#&gt;   Axis   Eigenvalue Variance_percent Cumulative_percent</span></span>
+<span id="cb7-15"><a href="#cb7-15" tabindex="-1"></a><span class="co">#&gt; 1  PC1 0.0002040109        11.459192           11.45919</span></span>
+<span id="cb7-16"><a href="#cb7-16" tabindex="-1"></a><span class="co">#&gt; 2  PC2 0.0001613024         9.060276           20.51947</span></span>
+<span id="cb7-17"><a href="#cb7-17" tabindex="-1"></a><span class="dv">100</span> <span class="sc">*</span> ordination<span class="sc">$</span>GOF[<span class="dv">1</span>]</span>
+<span id="cb7-18"><a href="#cb7-18" tabindex="-1"></a><span class="co">#&gt; [1] 20.51947</span></span>
+<span id="cb7-19"><a href="#cb7-19" tabindex="-1"></a><span class="fu">sum</span>(ordination<span class="sc">$</span>eig <span class="sc">&lt;</span> <span class="sc">-</span><span class="fu">sqrt</span>(.Machine<span class="sc">$</span>double.eps))</span>
+<span id="cb7-20"><a href="#cb7-20" tabindex="-1"></a><span class="co">#&gt; [1] 0</span></span></code></pre></div>
+<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" tabindex="-1"></a><span class="fu">plot</span>(</span>
+<span id="cb8-2"><a href="#cb8-2" tabindex="-1"></a>  ordination,</span>
+<span id="cb8-3"><a href="#cb8-3" tabindex="-1"></a>  <span class="at">main =</span> <span class="st">&quot;PCoA of taxonomic hierarchy distances&quot;</span></span>
+<span id="cb8-4"><a href="#cb8-4" tabindex="-1"></a>)</span></code></pre></div>
+<p><img src="data:image/png;base64,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" style="display: block; margin: auto;" /></p>
+<p>The first two axes explain approximately 11.46% and 9.06% of the
+positive eigenvalue total, respectively. Their cumulative representation
+is therefore about 20.52%.</p>
+<p>Consequently, the two-dimensional plot is a limited projection of the
+complete distance structure. Proximity in this graph should not be
+interpreted without considering its relatively low goodness-of-fit.</p>
+<p>No materially negative eigenvalues were observed for this matrix.
+This does not imply that every matrix produced from missing,
+disconnected, or differently processed lineages will have the same
+property.</p>
+</div>
+<div id="taxonomic-diversity-and-distinctness" class="section level2">
+<h2>Taxonomic diversity and distinctness</h2>
+<p>Clarke and Warwick (1998, 2001) developed indices based on averaged
+taxonomic distances among species or individuals.
+<code>vegan::taxondive()</code> accepts a community matrix together with
+a <code>dist</code> object.</p>
+<p>The following communities are hypothetical presence-absence
+assemblages. They are constructed only to demonstrate the interface.</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" tabindex="-1"></a>comm <span class="ot">&lt;-</span> <span class="fu">matrix</span>(</span>
+<span id="cb9-2"><a href="#cb9-2" tabindex="-1"></a>  <span class="fu">c</span>(</span>
+<span id="cb9-3"><a href="#cb9-3" tabindex="-1"></a>    <span class="dv">1</span>,<span class="dv">1</span>,<span class="dv">0</span>,<span class="dv">0</span>,<span class="dv">1</span>,<span class="dv">0</span>,<span class="dv">0</span>,<span class="dv">0</span>,<span class="dv">0</span>,<span class="dv">0</span>,<span class="dv">0</span>,<span class="dv">0</span>,<span class="dv">0</span>,<span class="dv">0</span>,<span class="dv">0</span>,</span>
+<span id="cb9-4"><a href="#cb9-4" tabindex="-1"></a>    <span class="dv">0</span>,<span class="dv">0</span>,<span class="dv">0</span>,<span class="dv">0</span>,<span class="dv">0</span>,<span class="dv">1</span>,<span class="dv">1</span>,<span class="dv">1</span>,<span class="dv">1</span>,<span class="dv">1</span>,<span class="dv">0</span>,<span class="dv">0</span>,<span class="dv">0</span>,<span class="dv">0</span>,<span class="dv">0</span>,</span>
+<span id="cb9-5"><a href="#cb9-5" tabindex="-1"></a>    <span class="dv">0</span>,<span class="dv">0</span>,<span class="dv">0</span>,<span class="dv">0</span>,<span class="dv">0</span>,<span class="dv">0</span>,<span class="dv">0</span>,<span class="dv">0</span>,<span class="dv">0</span>,<span class="dv">0</span>,<span class="dv">1</span>,<span class="dv">1</span>,<span class="dv">1</span>,<span class="dv">1</span>,<span class="dv">1</span></span>
+<span id="cb9-6"><a href="#cb9-6" tabindex="-1"></a>  ),</span>
+<span id="cb9-7"><a href="#cb9-7" tabindex="-1"></a>  <span class="at">nrow =</span> <span class="dv">3</span>,</span>
+<span id="cb9-8"><a href="#cb9-8" tabindex="-1"></a>  <span class="at">byrow =</span> <span class="cn">TRUE</span>,</span>
+<span id="cb9-9"><a href="#cb9-9" tabindex="-1"></a>  <span class="at">dimnames =</span> <span class="fu">list</span>(</span>
+<span id="cb9-10"><a href="#cb9-10" tabindex="-1"></a>    <span class="fu">c</span>(<span class="st">&quot;community_A&quot;</span>, <span class="st">&quot;community_B&quot;</span>, <span class="st">&quot;community_C&quot;</span>),</span>
+<span id="cb9-11"><a href="#cb9-11" tabindex="-1"></a>    taxa</span>
+<span id="cb9-12"><a href="#cb9-12" tabindex="-1"></a>  )</span>
+<span id="cb9-13"><a href="#cb9-13" tabindex="-1"></a>)</span>
+<span id="cb9-14"><a href="#cb9-14" tabindex="-1"></a></span>
+<span id="cb9-15"><a href="#cb9-15" tabindex="-1"></a>comm</span>
+<span id="cb9-16"><a href="#cb9-16" tabindex="-1"></a><span class="co">#&gt;             Priodontes Myrmecophaga Chrysocyon Tapirus Didelphis Leontopithecus</span></span>
+<span id="cb9-17"><a href="#cb9-17" tabindex="-1"></a><span class="co">#&gt; community_A          1            1          0       0         1              0</span></span>
+<span id="cb9-18"><a href="#cb9-18" tabindex="-1"></a><span class="co">#&gt; community_B          0            0          0       0         0              1</span></span>
+<span id="cb9-19"><a href="#cb9-19" tabindex="-1"></a><span class="co">#&gt; community_C          0            0          0       0         0              0</span></span>
+<span id="cb9-20"><a href="#cb9-20" tabindex="-1"></a><span class="co">#&gt;             Brachyteles Panthera Pteronura Puma Sotalia Pontoporia Trichechus</span></span>
+<span id="cb9-21"><a href="#cb9-21" tabindex="-1"></a><span class="co">#&gt; community_A           0        0         0    0       0          0          0</span></span>
+<span id="cb9-22"><a href="#cb9-22" tabindex="-1"></a><span class="co">#&gt; community_B           1        1         1    1       0          0          0</span></span>
+<span id="cb9-23"><a href="#cb9-23" tabindex="-1"></a><span class="co">#&gt; community_C           0        0         0    0       1          1          1</span></span>
+<span id="cb9-24"><a href="#cb9-24" tabindex="-1"></a><span class="co">#&gt;             Mazama Blastocerus</span></span>
+<span id="cb9-25"><a href="#cb9-25" tabindex="-1"></a><span class="co">#&gt; community_A      0           0</span></span>
+<span id="cb9-26"><a href="#cb9-26" tabindex="-1"></a><span class="co">#&gt; community_B      0           0</span></span>
+<span id="cb9-27"><a href="#cb9-27" tabindex="-1"></a><span class="co">#&gt; community_C      1           1</span></span></code></pre></div>
+<div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" tabindex="-1"></a>taxonomic_diversity <span class="ot">&lt;-</span> vegan<span class="sc">::</span><span class="fu">taxondive</span>(comm, mat)</span>
+<span id="cb10-2"><a href="#cb10-2" tabindex="-1"></a></span>
+<span id="cb10-3"><a href="#cb10-3" tabindex="-1"></a>taxonomic_diversity_table <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(</span>
+<span id="cb10-4"><a href="#cb10-4" tabindex="-1"></a>  <span class="at">Species =</span> taxonomic_diversity<span class="sc">$</span>Species,</span>
+<span id="cb10-5"><a href="#cb10-5" tabindex="-1"></a>  <span class="at">Delta =</span> taxonomic_diversity<span class="sc">$</span>D,</span>
+<span id="cb10-6"><a href="#cb10-6" tabindex="-1"></a>  <span class="at">Delta_star =</span> taxonomic_diversity<span class="sc">$</span>Dstar,</span>
+<span id="cb10-7"><a href="#cb10-7" tabindex="-1"></a>  <span class="at">Lambda_plus =</span> taxonomic_diversity<span class="sc">$</span>Lambda,</span>
+<span id="cb10-8"><a href="#cb10-8" tabindex="-1"></a>  <span class="at">Delta_plus =</span> taxonomic_diversity<span class="sc">$</span>Dplus,</span>
+<span id="cb10-9"><a href="#cb10-9" tabindex="-1"></a>  <span class="at">SD_Delta_plus =</span> taxonomic_diversity<span class="sc">$</span>sd.Dplus</span>
+<span id="cb10-10"><a href="#cb10-10" tabindex="-1"></a>)</span>
+<span id="cb10-11"><a href="#cb10-11" tabindex="-1"></a></span>
+<span id="cb10-12"><a href="#cb10-12" tabindex="-1"></a>taxonomic_diversity_table</span>
+<span id="cb10-13"><a href="#cb10-13" tabindex="-1"></a><span class="co">#&gt;             Species      Delta Delta_star  Lambda_plus Delta_plus SD_Delta_plus</span></span>
+<span id="cb10-14"><a href="#cb10-14" tabindex="-1"></a><span class="co">#&gt; community_A       3 0.01659044 0.01659044 2.573489e-07 0.01659044  0.0005404065</span></span>
+<span id="cb10-15"><a href="#cb10-15" tabindex="-1"></a><span class="co">#&gt; community_B       5 0.01539343 0.01539343 8.359778e-07 0.01539343  0.0003567428</span></span>
+<span id="cb10-16"><a href="#cb10-16" tabindex="-1"></a><span class="co">#&gt; community_C       5 0.01526725 0.01526725 1.046190e-06 0.01526725  0.0003567428</span></span></code></pre></div>
+<p>Here:</p>
+<ul>
+<li><span class="math inline">\(\Delta\)</span> is taxonomic diversity
+and incorporates abundances;</li>
+<li><span class="math inline">\(\Delta^*\)</span> is taxonomic
+distinctness conditional on individuals belonging to different
+taxa;</li>
+<li><span class="math inline">\(\Delta^+\)</span> is average taxonomic
+distinctness for presence-absence data;</li>
+<li><span class="math inline">\(\Lambda^+\)</span> describes variation
+in pairwise taxonomic distinctness.</li>
+</ul>
+<p>Because these examples use presence-absence data, <span class="math inline">\(\Delta\)</span>, <span class="math inline">\(\Delta^*\)</span>, and <span class="math inline">\(\Delta^+\)</span> coincide within each
 community.</p>
-<p><strong>Delta</strong>* (<span class="math inline">\(\Delta^*\)</span>): mean pairwise distance
-excluding self-comparisons; comparable across communities of different
-sizes.</p>
-<p><strong>Delta+</strong> (<span class="math inline">\(\Delta^+\)</span>): mean pairwise distance
-weighted by species abundances. For presence-absence data this equals
-<span class="math inline">\(\Delta^*\)</span>.</p>
-<p><strong>Lambda+</strong> (<span class="math inline">\(\Lambda^+\)</span>): variance in taxonomic
-distances, measuring how evenly a community spans the taxonomic
-tree.</p>
-<p><code>community_A</code>, dominated by xenarthrans and a marsupial,
-scores the highest <span class="math inline">\(\Delta\)</span>
-(0.01673), reflecting deeper divergences among its members.
-<code>community_B</code> (primates and carnivores) scores the lowest
-(0.01591), as its members share more recent common ancestors within
-Placentalia.</p>
-<hr />
+<p><code>community_A</code> has the largest mean distance, approximately
+0.01659. <code>community_B</code> and <code>community_C</code> have
+values of approximately 0.01539 and 0.01527. These differences describe
+only the deliberately constructed example communities.</p>
+<p>Traditional applications often calculate taxonomic distances from
+integer or weighted steps through standardized ranks. The distances
+supplied here instead use reciprocal MRCA depth.
+<code>taxondive()</code> permits other dissimilarities, but the
+resulting values are specific to this definition and should not be
+compared numerically with conventional Clarke-Warwick indices without
+accounting for the different distance scale. Multiplying all distances
+by a constant also rescales the Delta indices and rescales <span class="math inline">\(\Lambda^+\)</span> by the square of that
+constant.</p>
 </div>
+<div id="mantel-test" class="section level2">
+<h2>Mantel test</h2>
+<p>The Mantel test evaluates association between two distance matrices
+using permutations (Mantel, 1967). Both matrices must refer to the same
+observations in the same order.</p>
+<p>The coordinates below are simulated and have no biological
+interpretation.</p>
+<div class="sourceCode" id="cb11"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">42</span>)</span>
+<span id="cb11-2"><a href="#cb11-2" tabindex="-1"></a></span>
+<span id="cb11-3"><a href="#cb11-3" tabindex="-1"></a>coordinates <span class="ot">&lt;-</span> <span class="fu">matrix</span>(</span>
+<span id="cb11-4"><a href="#cb11-4" tabindex="-1"></a>  <span class="fu">rnorm</span>(<span class="dv">2</span> <span class="sc">*</span> <span class="fu">length</span>(taxa)),</span>
+<span id="cb11-5"><a href="#cb11-5" tabindex="-1"></a>  <span class="at">ncol =</span> <span class="dv">2</span>,</span>
+<span id="cb11-6"><a href="#cb11-6" tabindex="-1"></a>  <span class="at">dimnames =</span> <span class="fu">list</span>(taxa, <span class="fu">c</span>(<span class="st">&quot;x&quot;</span>, <span class="st">&quot;y&quot;</span>))</span>
+<span id="cb11-7"><a href="#cb11-7" tabindex="-1"></a>)</span>
+<span id="cb11-8"><a href="#cb11-8" tabindex="-1"></a></span>
+<span id="cb11-9"><a href="#cb11-9" tabindex="-1"></a>geographic_distance <span class="ot">&lt;-</span> stats<span class="sc">::</span><span class="fu">dist</span>(coordinates)</span>
+<span id="cb11-10"><a href="#cb11-10" tabindex="-1"></a></span>
+<span id="cb11-11"><a href="#cb11-11" tabindex="-1"></a>mantel_result <span class="ot">&lt;-</span> vegan<span class="sc">::</span><span class="fu">mantel</span>(</span>
+<span id="cb11-12"><a href="#cb11-12" tabindex="-1"></a>  mat,</span>
+<span id="cb11-13"><a href="#cb11-13" tabindex="-1"></a>  geographic_distance,</span>
+<span id="cb11-14"><a href="#cb11-14" tabindex="-1"></a>  <span class="at">method =</span> <span class="st">&quot;pearson&quot;</span>,</span>
+<span id="cb11-15"><a href="#cb11-15" tabindex="-1"></a>  <span class="at">permutations =</span> <span class="dv">999</span></span>
+<span id="cb11-16"><a href="#cb11-16" tabindex="-1"></a>)</span>
+<span id="cb11-17"><a href="#cb11-17" tabindex="-1"></a></span>
+<span id="cb11-18"><a href="#cb11-18" tabindex="-1"></a>mantel_result</span>
+<span id="cb11-19"><a href="#cb11-19" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb11-20"><a href="#cb11-20" tabindex="-1"></a><span class="co">#&gt; Mantel statistic based on Pearson&#39;s product-moment correlation </span></span>
+<span id="cb11-21"><a href="#cb11-21" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb11-22"><a href="#cb11-22" tabindex="-1"></a><span class="co">#&gt; Call:</span></span>
+<span id="cb11-23"><a href="#cb11-23" tabindex="-1"></a><span class="co">#&gt; vegan::mantel(xdis = mat, ydis = geographic_distance, method = &quot;pearson&quot;,      permutations = 999) </span></span>
+<span id="cb11-24"><a href="#cb11-24" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb11-25"><a href="#cb11-25" tabindex="-1"></a><span class="co">#&gt; Mantel statistic r: -0.05619 </span></span>
+<span id="cb11-26"><a href="#cb11-26" tabindex="-1"></a><span class="co">#&gt;       Significance: 0.655 </span></span>
+<span id="cb11-27"><a href="#cb11-27" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb11-28"><a href="#cb11-28" tabindex="-1"></a><span class="co">#&gt; Upper quantiles of permutations (null model):</span></span>
+<span id="cb11-29"><a href="#cb11-29" tabindex="-1"></a><span class="co">#&gt;   90%   95% 97.5%   99% </span></span>
+<span id="cb11-30"><a href="#cb11-30" tabindex="-1"></a><span class="co">#&gt; 0.187 0.234 0.268 0.336 </span></span>
+<span id="cb11-31"><a href="#cb11-31" tabindex="-1"></a><span class="co">#&gt; Permutation: free</span></span>
+<span id="cb11-32"><a href="#cb11-32" tabindex="-1"></a><span class="co">#&gt; Number of permutations: 999</span></span></code></pre></div>
+<p>The simulated example gives a Mantel correlation of approximately
+-0.056 and a permutation p-value of approximately 0.655. It therefore
+provides no evidence of association between taxonomic and simulated
+geographic distance.</p>
+<p>This is the expected interpretation of this example: the coordinates
+were generated randomly. It is not evidence for or against a biological
+biogeographic process.</p>
+<p>In an empirical analysis, the permutation design must reflect the
+sampling design. Spatial dependence, repeated measurements, blocks, and
+nested sampling can invalidate unrestricted permutations.</p>
 </div>
-<div id="mantel-test-with-vegan" class="section level2">
-<h2>Mantel test with <code>vegan</code></h2>
-<p>The Mantel test assesses the correlation between two distance
-matrices by permutation. A typical application is testing whether
-taxonomic distance correlates with geographic distance, a signature of
-phylogeographic structure.</p>
-<p>Here we use simulated coordinates for illustration. In practice,
-replace <code>coords</code> with observed latitude and longitude
-values.</p>
-<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">42</span>)</span>
-<span id="cb6-2"><a href="#cb6-2" tabindex="-1"></a>coords <span class="ot">&lt;-</span> <span class="fu">matrix</span>(<span class="fu">rnorm</span>(<span class="dv">30</span>), <span class="at">ncol =</span> <span class="dv">2</span>)</span>
-<span id="cb6-3"><a href="#cb6-3" tabindex="-1"></a><span class="fu">rownames</span>(coords) <span class="ot">&lt;-</span> taxa_brazil</span>
-<span id="cb6-4"><a href="#cb6-4" tabindex="-1"></a>geo_dist <span class="ot">&lt;-</span> <span class="fu">dist</span>(coords)</span>
-<span id="cb6-5"><a href="#cb6-5" tabindex="-1"></a></span>
-<span id="cb6-6"><a href="#cb6-6" tabindex="-1"></a>vegan<span class="sc">::</span><span class="fu">mantel</span>(mat, geo_dist)</span>
-<span id="cb6-7"><a href="#cb6-7" tabindex="-1"></a><span class="co">#&gt; Mantel statistic based on Pearson&#39;s product-moment correlation</span></span>
-<span id="cb6-8"><a href="#cb6-8" tabindex="-1"></a><span class="co">#&gt;</span></span>
-<span id="cb6-9"><a href="#cb6-9" tabindex="-1"></a><span class="co">#&gt; Call:</span></span>
-<span id="cb6-10"><a href="#cb6-10" tabindex="-1"></a><span class="co">#&gt; vegan::mantel(xdis = mat, ydis = geo_dist)</span></span>
-<span id="cb6-11"><a href="#cb6-11" tabindex="-1"></a><span class="co">#&gt;</span></span>
-<span id="cb6-12"><a href="#cb6-12" tabindex="-1"></a><span class="co">#&gt; Mantel statistic r: -0.0569</span></span>
-<span id="cb6-13"><a href="#cb6-13" tabindex="-1"></a><span class="co">#&gt;       Significance: 0.653</span></span>
-<span id="cb6-14"><a href="#cb6-14" tabindex="-1"></a><span class="co">#&gt;</span></span>
-<span id="cb6-15"><a href="#cb6-15" tabindex="-1"></a><span class="co">#&gt; Upper quantiles of permutations (null model):</span></span>
-<span id="cb6-16"><a href="#cb6-16" tabindex="-1"></a><span class="co">#&gt;   90%   95% 97.5%   99% </span></span>
-<span id="cb6-17"><a href="#cb6-17" tabindex="-1"></a><span class="co">#&gt; 0.188 0.237 0.272 0.336 </span></span>
-<span id="cb6-18"><a href="#cb6-18" tabindex="-1"></a><span class="co">#&gt; Permutation: free</span></span>
-<span id="cb6-19"><a href="#cb6-19" tabindex="-1"></a><span class="co">#&gt; Number of permutations: 999</span></span></code></pre></div>
-<p>The non-significant result (r = -0.27, p = 0.972) is expected with
-random coordinates. For non-normal distance distributions,
-<code>&quot;spearman&quot;</code> is more robust than the default
-<code>&quot;pearson&quot;</code>.</p>
-<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" tabindex="-1"></a>vegan<span class="sc">::</span><span class="fu">mantel</span>(mat, geo_dist, <span class="at">method =</span> <span class="st">&quot;spearman&quot;</span>, <span class="at">permutations =</span> <span class="dv">9999</span>)</span>
-<span id="cb7-2"><a href="#cb7-2" tabindex="-1"></a><span class="co">#&gt; Mantel statistic based on Spearman&#39;s rank correlation rho </span></span>
-<span id="cb7-3"><a href="#cb7-3" tabindex="-1"></a><span class="co">#&gt;</span></span>
-<span id="cb7-4"><a href="#cb7-4" tabindex="-1"></a><span class="co">#&gt; Call:</span></span>
-<span id="cb7-5"><a href="#cb7-5" tabindex="-1"></a><span class="co">#&gt; vegan::mantel(xdis = mat, ydis = geo_dist, method = &quot;spearman&quot;,</span></span>
-<span id="cb7-6"><a href="#cb7-6" tabindex="-1"></a><span class="co">#&gt;     permutations = 9999)</span></span>
-<span id="cb7-7"><a href="#cb7-7" tabindex="-1"></a><span class="co">#&gt;</span></span>
-<span id="cb7-8"><a href="#cb7-8" tabindex="-1"></a><span class="co">#&gt; Mantel statistic r: -0.07405</span></span>
-<span id="cb7-9"><a href="#cb7-9" tabindex="-1"></a><span class="co">#&gt;       Significance: 0.672</span></span>
-<span id="cb7-10"><a href="#cb7-10" tabindex="-1"></a><span class="co">#&gt;</span></span>
-<span id="cb7-11"><a href="#cb7-11" tabindex="-1"></a><span class="co">#&gt; Upper quantiles of permutations (null model):</span></span>
-<span id="cb7-12"><a href="#cb7-12" tabindex="-1"></a><span class="co">#&gt;   90%   95% 97.5%   99%</span></span>
-<span id="cb7-13"><a href="#cb7-13" tabindex="-1"></a><span class="co">#&gt; 0.189 0.244 0.293 0.353 </span></span>
-<span id="cb7-14"><a href="#cb7-14" tabindex="-1"></a><span class="co">#&gt; Permutation: free</span></span>
-<span id="cb7-15"><a href="#cb7-15" tabindex="-1"></a><span class="co">#&gt; Number of permutations: 9999</span></span></code></pre></div>
-<hr />
+<div id="permanova" class="section level2">
+<h2>PERMANOVA</h2>
+<p>PERMANOVA partitions variation in a distance matrix and assesses a
+pseudo-<span class="math inline">\(F\)</span> statistic using
+permutations (Anderson, 2001).</p>
+<p>The groups below are illustrative taxonomic categories. They are
+uneven in size, and some contain only one observation. They are
+therefore suitable for demonstrating the software interface but not for
+drawing substantive inferential conclusions.</p>
+<div class="sourceCode" id="cb12"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" tabindex="-1"></a>groups <span class="ot">&lt;-</span> <span class="fu">factor</span>(<span class="fu">c</span>(</span>
+<span id="cb12-2"><a href="#cb12-2" tabindex="-1"></a>  <span class="st">&quot;xenarthran&quot;</span>, <span class="st">&quot;xenarthran&quot;</span>,</span>
+<span id="cb12-3"><a href="#cb12-3" tabindex="-1"></a>  <span class="st">&quot;carnivoran&quot;</span>,</span>
+<span id="cb12-4"><a href="#cb12-4" tabindex="-1"></a>  <span class="st">&quot;ungulate&quot;</span>,</span>
+<span id="cb12-5"><a href="#cb12-5" tabindex="-1"></a>  <span class="st">&quot;marsupial&quot;</span>,</span>
+<span id="cb12-6"><a href="#cb12-6" tabindex="-1"></a>  <span class="st">&quot;primate&quot;</span>, <span class="st">&quot;primate&quot;</span>,</span>
+<span id="cb12-7"><a href="#cb12-7" tabindex="-1"></a>  <span class="st">&quot;carnivoran&quot;</span>, <span class="st">&quot;carnivoran&quot;</span>, <span class="st">&quot;carnivoran&quot;</span>,</span>
+<span id="cb12-8"><a href="#cb12-8" tabindex="-1"></a>  <span class="st">&quot;cetacean&quot;</span>, <span class="st">&quot;cetacean&quot;</span>,</span>
+<span id="cb12-9"><a href="#cb12-9" tabindex="-1"></a>  <span class="st">&quot;sirenian&quot;</span>,</span>
+<span id="cb12-10"><a href="#cb12-10" tabindex="-1"></a>  <span class="st">&quot;ungulate&quot;</span>, <span class="st">&quot;ungulate&quot;</span></span>
+<span id="cb12-11"><a href="#cb12-11" tabindex="-1"></a>))</span>
+<span id="cb12-12"><a href="#cb12-12" tabindex="-1"></a></span>
+<span id="cb12-13"><a href="#cb12-13" tabindex="-1"></a><span class="fu">table</span>(groups)</span>
+<span id="cb12-14"><a href="#cb12-14" tabindex="-1"></a><span class="co">#&gt; groups</span></span>
+<span id="cb12-15"><a href="#cb12-15" tabindex="-1"></a><span class="co">#&gt; carnivoran   cetacean  marsupial    primate   sirenian   ungulate xenarthran </span></span>
+<span id="cb12-16"><a href="#cb12-16" tabindex="-1"></a><span class="co">#&gt;          4          2          1          2          1          3          2</span></span></code></pre></div>
+<div class="sourceCode" id="cb13"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">42</span>)</span>
+<span id="cb13-2"><a href="#cb13-2" tabindex="-1"></a></span>
+<span id="cb13-3"><a href="#cb13-3" tabindex="-1"></a>permanova_result <span class="ot">&lt;-</span> vegan<span class="sc">::</span><span class="fu">adonis2</span>(</span>
+<span id="cb13-4"><a href="#cb13-4" tabindex="-1"></a>  mat <span class="sc">~</span> groups,</span>
+<span id="cb13-5"><a href="#cb13-5" tabindex="-1"></a>  <span class="at">permutations =</span> <span class="dv">999</span></span>
+<span id="cb13-6"><a href="#cb13-6" tabindex="-1"></a>)</span>
+<span id="cb13-7"><a href="#cb13-7" tabindex="-1"></a></span>
+<span id="cb13-8"><a href="#cb13-8" tabindex="-1"></a>permanova_result</span>
+<span id="cb13-9"><a href="#cb13-9" tabindex="-1"></a><span class="co">#&gt; Permutation test for adonis under reduced model</span></span>
+<span id="cb13-10"><a href="#cb13-10" tabindex="-1"></a><span class="co">#&gt; Permutation: free</span></span>
+<span id="cb13-11"><a href="#cb13-11" tabindex="-1"></a><span class="co">#&gt; Number of permutations: 999</span></span>
+<span id="cb13-12"><a href="#cb13-12" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb13-13"><a href="#cb13-13" tabindex="-1"></a><span class="co">#&gt; vegan::adonis2(formula = mat ~ groups, permutations = 999)</span></span>
+<span id="cb13-14"><a href="#cb13-14" tabindex="-1"></a><span class="co">#&gt;          Df   SumOfSqs     R2      F Pr(&gt;F)    </span></span>
+<span id="cb13-15"><a href="#cb13-15" tabindex="-1"></a><span class="co">#&gt; Model     6 0.00093360 0.5244 1.4701  0.001 ***</span></span>
+<span id="cb13-16"><a href="#cb13-16" tabindex="-1"></a><span class="co">#&gt; Residual  8 0.00084673 0.4756                  </span></span>
+<span id="cb13-17"><a href="#cb13-17" tabindex="-1"></a><span class="co">#&gt; Total    14 0.00178033 1.0000                  </span></span>
+<span id="cb13-18"><a href="#cb13-18" tabindex="-1"></a><span class="co">#&gt; ---</span></span>
+<span id="cb13-19"><a href="#cb13-19" tabindex="-1"></a><span class="co">#&gt; Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1</span></span></code></pre></div>
+<p>For these constructed groups, the model accounts for approximately
+52.44% of the total sum of squares and gives a permutation p-value of
+0.001.</p>
+<p>That result must not immediately be interpreted as evidence that
+group centroids differ. PERMANOVA can respond to differences in group
+location, within-group dispersion, or both, particularly in an
+unbalanced design.</p>
 </div>
-<div id="permanova-with-vegan" class="section level2">
-<h2>PERMANOVA with <code>vegan</code></h2>
-<p>PERMANOVA (Anderson 2001) tests whether groups of taxa differ
-significantly in taxonomic distance space. It partitions total variance
-in the distance matrix into within-group and between-group components
-and assesses significance by permutation, with no assumption of
-multivariate normality.</p>
-<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" tabindex="-1"></a>groups <span class="ot">&lt;-</span> <span class="fu">c</span>(</span>
-<span id="cb8-2"><a href="#cb8-2" tabindex="-1"></a>  <span class="st">&quot;xenarthra&quot;</span>, <span class="st">&quot;xenarthra&quot;</span>, <span class="st">&quot;carnivore&quot;</span>, <span class="st">&quot;ungulate&quot;</span>,  <span class="st">&quot;marsupial&quot;</span>,</span>
-<span id="cb8-3"><a href="#cb8-3" tabindex="-1"></a>  <span class="st">&quot;primate&quot;</span>,   <span class="st">&quot;primate&quot;</span>,</span>
-<span id="cb8-4"><a href="#cb8-4" tabindex="-1"></a>  <span class="st">&quot;carnivore&quot;</span>, <span class="st">&quot;carnivore&quot;</span>, <span class="st">&quot;carnivore&quot;</span>,</span>
-<span id="cb8-5"><a href="#cb8-5" tabindex="-1"></a>  <span class="st">&quot;cetacean&quot;</span>,  <span class="st">&quot;cetacean&quot;</span>,</span>
-<span id="cb8-6"><a href="#cb8-6" tabindex="-1"></a>  <span class="st">&quot;sirenian&quot;</span>,  <span class="st">&quot;ungulate&quot;</span>,  <span class="st">&quot;ungulate&quot;</span></span>
-<span id="cb8-7"><a href="#cb8-7" tabindex="-1"></a>)</span>
-<span id="cb8-8"><a href="#cb8-8" tabindex="-1"></a></span>
-<span id="cb8-9"><a href="#cb8-9" tabindex="-1"></a>vegan<span class="sc">::</span><span class="fu">adonis2</span>(mat <span class="sc">~</span> groups)</span>
-<span id="cb8-10"><a href="#cb8-10" tabindex="-1"></a><span class="co">#&gt; Permutation test for adonis under reduced model</span></span>
-<span id="cb8-11"><a href="#cb8-11" tabindex="-1"></a><span class="co">#&gt; Permutation: free</span></span>
-<span id="cb8-12"><a href="#cb8-12" tabindex="-1"></a><span class="co">#&gt; Number of permutations: 999</span></span>
-<span id="cb8-13"><a href="#cb8-13" tabindex="-1"></a><span class="co">#&gt;</span></span>
-<span id="cb8-14"><a href="#cb8-14" tabindex="-1"></a><span class="co">#&gt; vegan::adonis2(formula = mat ~ groups)</span></span>
-<span id="cb8-15"><a href="#cb8-15" tabindex="-1"></a><span class="co">#&gt;          Df  SumOfSqs      R2      F Pr(&gt;F)</span></span>
-<span id="cb8-16"><a href="#cb8-16" tabindex="-1"></a><span class="co">#&gt; Model     6 0.00100049 0.52646 1.4823  0.001 ***</span></span>
-<span id="cb8-17"><a href="#cb8-17" tabindex="-1"></a><span class="co">#&gt; Residual  8 0.00089992 0.47354  </span></span>
-<span id="cb8-18"><a href="#cb8-18" tabindex="-1"></a><span class="co">#&gt; Total    14 0.00190041 1.00000   </span></span>
-<span id="cb8-19"><a href="#cb8-19" tabindex="-1"></a><span class="co">#&gt; ---</span></span>
-<span id="cb8-20"><a href="#cb8-20" tabindex="-1"></a><span class="co">#&gt; Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1</span></span></code></pre></div>
-<p>The taxonomic grouping explains <span class="math inline">\(49.6\%\)</span> of the total variance in the
-distance matrix (<span class="math inline">\(\text{R}^2 =
-0.496\)</span>, <span class="math inline">\(\text{p} = 0.001\)</span>).
-This confirms that the broad mammalian orders occupy distinct regions of
-taxonomic distance space, consistent with their deep evolutionary
-divergences.</p>
-<p>For pairwise comparisons between groups after a significant
-PERMANOVA, see <code>pairwise.adonis2()</code> in the
-<code>pairwiseAdonis</code> package.</p>
-<hr />
+<div id="multivariate-dispersion" class="section level2">
+<h2>Multivariate dispersion</h2>
+<p>Distance-based analysis of multivariate dispersion examines distances
+from observations to their group centroid or spatial median (Anderson,
+2006). It provides an important companion analysis for PERMANOVA.</p>
+<div class="sourceCode" id="cb14"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" tabindex="-1"></a>dispersion <span class="ot">&lt;-</span> vegan<span class="sc">::</span><span class="fu">betadisper</span>(mat, groups)</span>
+<span id="cb14-2"><a href="#cb14-2" tabindex="-1"></a></span>
+<span id="cb14-3"><a href="#cb14-3" tabindex="-1"></a><span class="fu">anova</span>(dispersion)</span>
+<span id="cb14-4"><a href="#cb14-4" tabindex="-1"></a><span class="co">#&gt; Analysis of Variance Table</span></span>
+<span id="cb14-5"><a href="#cb14-5" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb14-6"><a href="#cb14-6" tabindex="-1"></a><span class="co">#&gt; Response: Distances</span></span>
+<span id="cb14-7"><a href="#cb14-7" tabindex="-1"></a><span class="co">#&gt;           Df     Sum Sq    Mean Sq F value    Pr(&gt;F)    </span></span>
+<span id="cb14-8"><a href="#cb14-8" tabindex="-1"></a><span class="co">#&gt; Groups     6 1.1906e-04 1.9844e-05  84.335 8.584e-07 ***</span></span>
+<span id="cb14-9"><a href="#cb14-9" tabindex="-1"></a><span class="co">#&gt; Residuals  8 1.8820e-06 2.3530e-07                      </span></span>
+<span id="cb14-10"><a href="#cb14-10" tabindex="-1"></a><span class="co">#&gt; ---</span></span>
+<span id="cb14-11"><a href="#cb14-11" tabindex="-1"></a><span class="co">#&gt; Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1</span></span>
+<span id="cb14-12"><a href="#cb14-12" tabindex="-1"></a></span>
+<span id="cb14-13"><a href="#cb14-13" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">42</span>)</span>
+<span id="cb14-14"><a href="#cb14-14" tabindex="-1"></a>vegan<span class="sc">::</span><span class="fu">permutest</span>(</span>
+<span id="cb14-15"><a href="#cb14-15" tabindex="-1"></a>  dispersion,</span>
+<span id="cb14-16"><a href="#cb14-16" tabindex="-1"></a>  <span class="at">permutations =</span> <span class="dv">999</span></span>
+<span id="cb14-17"><a href="#cb14-17" tabindex="-1"></a>)</span>
+<span id="cb14-18"><a href="#cb14-18" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb14-19"><a href="#cb14-19" tabindex="-1"></a><span class="co">#&gt; Permutation test for homogeneity of multivariate dispersions</span></span>
+<span id="cb14-20"><a href="#cb14-20" tabindex="-1"></a><span class="co">#&gt; Permutation: free</span></span>
+<span id="cb14-21"><a href="#cb14-21" tabindex="-1"></a><span class="co">#&gt; Number of permutations: 999</span></span>
+<span id="cb14-22"><a href="#cb14-22" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb14-23"><a href="#cb14-23" tabindex="-1"></a><span class="co">#&gt; Response: Distances</span></span>
+<span id="cb14-24"><a href="#cb14-24" tabindex="-1"></a><span class="co">#&gt;           Df     Sum Sq    Mean Sq      F N.Perm Pr(&gt;F)    </span></span>
+<span id="cb14-25"><a href="#cb14-25" tabindex="-1"></a><span class="co">#&gt; Groups     6 1.1906e-04 1.9844e-05 84.335    999  0.001 ***</span></span>
+<span id="cb14-26"><a href="#cb14-26" tabindex="-1"></a><span class="co">#&gt; Residuals  8 1.8820e-06 2.3530e-07                         </span></span>
+<span id="cb14-27"><a href="#cb14-27" tabindex="-1"></a><span class="co">#&gt; ---</span></span>
+<span id="cb14-28"><a href="#cb14-28" tabindex="-1"></a><span class="co">#&gt; Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1</span></span></code></pre></div>
+<p>The ordinary analysis of distances to group centers is highly
+significant in this example. Thus the groups differ strongly in
+dispersion.</p>
+<p>The PERMANOVA result is consequently confounded with dispersion
+differences and cannot be presented as an unambiguous difference among
+group centroids. Moreover, singleton and very small groups make this
+example unsuitable for formal biological inference.</p>
+<p>A real study should use independently justified groups, adequate
+replication, and a permutation structure consistent with the sampling
+design.</p>
 </div>
-<div id="a-complete-workflow" class="section level2">
-<h2>A complete workflow</h2>
-<p>The following script chains all steps from taxon names to
-multivariate analysis.</p>
-<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" tabindex="-1"></a><span class="fu">library</span>(taxodist)</span>
-<span id="cb9-2"><a href="#cb9-2" tabindex="-1"></a><span class="fu">library</span>(vegan)</span>
-<span id="cb9-3"><a href="#cb9-3" tabindex="-1"></a><span class="fu">library</span>(ape)</span>
-<span id="cb9-4"><a href="#cb9-4" tabindex="-1"></a></span>
-<span id="cb9-5"><a href="#cb9-5" tabindex="-1"></a><span class="co"># 1. define taxa</span></span>
-<span id="cb9-6"><a href="#cb9-6" tabindex="-1"></a>taxa_brazil <span class="ot">&lt;-</span> <span class="fu">c</span>(</span>
-<span id="cb9-7"><a href="#cb9-7" tabindex="-1"></a>  <span class="st">&quot;Priodontes&quot;</span>, <span class="st">&quot;Myrmecophaga&quot;</span>, <span class="st">&quot;Chrysocyon&quot;</span>, <span class="st">&quot;Tapirus&quot;</span>, <span class="st">&quot;Didelphis&quot;</span>,</span>
-<span id="cb9-8"><a href="#cb9-8" tabindex="-1"></a>  <span class="st">&quot;Leontopithecus&quot;</span>, <span class="st">&quot;Brachyteles&quot;</span>,</span>
-<span id="cb9-9"><a href="#cb9-9" tabindex="-1"></a>  <span class="st">&quot;Panthera&quot;</span>, <span class="st">&quot;Pteronura&quot;</span>, <span class="st">&quot;Puma&quot;</span>,</span>
-<span id="cb9-10"><a href="#cb9-10" tabindex="-1"></a>  <span class="st">&quot;Sotalia&quot;</span>, <span class="st">&quot;Pontoporia&quot;</span>,</span>
-<span id="cb9-11"><a href="#cb9-11" tabindex="-1"></a>  <span class="st">&quot;Trichechus&quot;</span>, <span class="st">&quot;Mazama&quot;</span>, <span class="st">&quot;Blastocerus&quot;</span></span>
-<span id="cb9-12"><a href="#cb9-12" tabindex="-1"></a>)</span>
-<span id="cb9-13"><a href="#cb9-13" tabindex="-1"></a></span>
-<span id="cb9-14"><a href="#cb9-14" tabindex="-1"></a><span class="co"># 2. compute distance matrix</span></span>
-<span id="cb9-15"><a href="#cb9-15" tabindex="-1"></a>mat <span class="ot">&lt;-</span> <span class="fu">distance_matrix</span>(taxa_brazil)</span>
-<span id="cb9-16"><a href="#cb9-16" tabindex="-1"></a></span>
-<span id="cb9-17"><a href="#cb9-17" tabindex="-1"></a><span class="co"># 3. hierarchical clustering and phylo plot</span></span>
-<span id="cb9-18"><a href="#cb9-18" tabindex="-1"></a>cl   <span class="ot">&lt;-</span> <span class="fu">taxo_cluster</span>(taxa_brazil)</span>
-<span id="cb9-19"><a href="#cb9-19" tabindex="-1"></a>tree <span class="ot">&lt;-</span> ape<span class="sc">::</span><span class="fu">as.phylo</span>(cl<span class="sc">$</span>hclust)</span>
-<span id="cb9-20"><a href="#cb9-20" tabindex="-1"></a><span class="fu">plot</span>(tree, <span class="at">main =</span> <span class="st">&quot;Threatened Mammals of Brazil&quot;</span>, <span class="at">cex =</span> <span class="fl">0.85</span>)</span>
-<span id="cb9-21"><a href="#cb9-21" tabindex="-1"></a></span>
-<span id="cb9-22"><a href="#cb9-22" tabindex="-1"></a><span class="co"># 4. PCoA ordination</span></span>
-<span id="cb9-23"><a href="#cb9-23" tabindex="-1"></a>ord <span class="ot">&lt;-</span> <span class="fu">taxo_ordinate</span>(mat)</span>
-<span id="cb9-24"><a href="#cb9-24" tabindex="-1"></a><span class="fu">plot</span>(ord, <span class="at">main =</span> <span class="st">&quot;PCoA: Taxonomic Distance Space&quot;</span>)</span>
-<span id="cb9-25"><a href="#cb9-25" tabindex="-1"></a></span>
-<span id="cb9-26"><a href="#cb9-26" tabindex="-1"></a><span class="co"># 5. PERMANOVA</span></span>
-<span id="cb9-27"><a href="#cb9-27" tabindex="-1"></a>groups <span class="ot">&lt;-</span> <span class="fu">c</span>(</span>
-<span id="cb9-28"><a href="#cb9-28" tabindex="-1"></a>  <span class="st">&quot;xenarthra&quot;</span>, <span class="st">&quot;xenarthra&quot;</span>, <span class="st">&quot;carnivore&quot;</span>, <span class="st">&quot;ungulate&quot;</span>,  <span class="st">&quot;marsupial&quot;</span>,</span>
-<span id="cb9-29"><a href="#cb9-29" tabindex="-1"></a>  <span class="st">&quot;primate&quot;</span>,   <span class="st">&quot;primate&quot;</span>,</span>
-<span id="cb9-30"><a href="#cb9-30" tabindex="-1"></a>  <span class="st">&quot;carnivore&quot;</span>, <span class="st">&quot;carnivore&quot;</span>, <span class="st">&quot;carnivore&quot;</span>,</span>
-<span id="cb9-31"><a href="#cb9-31" tabindex="-1"></a>  <span class="st">&quot;cetacean&quot;</span>,  <span class="st">&quot;cetacean&quot;</span>,</span>
-<span id="cb9-32"><a href="#cb9-32" tabindex="-1"></a>  <span class="st">&quot;sirenian&quot;</span>,  <span class="st">&quot;ungulate&quot;</span>,  <span class="st">&quot;ungulate&quot;</span></span>
-<span id="cb9-33"><a href="#cb9-33" tabindex="-1"></a>)</span>
-<span id="cb9-34"><a href="#cb9-34" tabindex="-1"></a>vegan<span class="sc">::</span><span class="fu">adonis2</span>(mat <span class="sc">~</span> groups)</span></code></pre></div>
-<hr />
+<div id="complete-live-workflow" class="section level2">
+<h2>Complete live workflow</h2>
+<p>The following workflow computes a new matrix from taxon names. It is
+not evaluated while the vignette is built because it requires access to
+The Taxonomicon.</p>
+<div class="sourceCode" id="cb15"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" tabindex="-1"></a><span class="fu">library</span>(taxodist)</span>
+<span id="cb15-2"><a href="#cb15-2" tabindex="-1"></a></span>
+<span id="cb15-3"><a href="#cb15-3" tabindex="-1"></a>taxa <span class="ot">&lt;-</span> <span class="fu">c</span>(</span>
+<span id="cb15-4"><a href="#cb15-4" tabindex="-1"></a>  <span class="st">&quot;Tyrannosaurus&quot;</span>,</span>
+<span id="cb15-5"><a href="#cb15-5" tabindex="-1"></a>  <span class="st">&quot;Velociraptor&quot;</span>,</span>
+<span id="cb15-6"><a href="#cb15-6" tabindex="-1"></a>  <span class="st">&quot;Spinosaurus&quot;</span>,</span>
+<span id="cb15-7"><a href="#cb15-7" tabindex="-1"></a>  <span class="st">&quot;Allosaurus&quot;</span></span>
+<span id="cb15-8"><a href="#cb15-8" tabindex="-1"></a>)</span>
+<span id="cb15-9"><a href="#cb15-9" tabindex="-1"></a></span>
+<span id="cb15-10"><a href="#cb15-10" tabindex="-1"></a>coverage <span class="ot">&lt;-</span> <span class="fu">check_coverage</span>(taxa)</span>
+<span id="cb15-11"><a href="#cb15-11" tabindex="-1"></a><span class="fu">stopifnot</span>(<span class="fu">all</span>(coverage))</span>
+<span id="cb15-12"><a href="#cb15-12" tabindex="-1"></a></span>
+<span id="cb15-13"><a href="#cb15-13" tabindex="-1"></a>mat <span class="ot">&lt;-</span> <span class="fu">distance_matrix</span>(taxa)</span>
+<span id="cb15-14"><a href="#cb15-14" tabindex="-1"></a></span>
+<span id="cb15-15"><a href="#cb15-15" tabindex="-1"></a>clustering <span class="ot">&lt;-</span> <span class="fu">taxo_cluster</span>(mat, <span class="at">method =</span> <span class="st">&quot;average&quot;</span>)</span>
+<span id="cb15-16"><a href="#cb15-16" tabindex="-1"></a>ordination <span class="ot">&lt;-</span> <span class="fu">taxo_ordinate</span>(mat, <span class="at">k =</span> <span class="dv">2</span>)</span>
+<span id="cb15-17"><a href="#cb15-17" tabindex="-1"></a></span>
+<span id="cb15-18"><a href="#cb15-18" tabindex="-1"></a><span class="fu">plot</span>(clustering)</span>
+<span id="cb15-19"><a href="#cb15-19" tabindex="-1"></a><span class="fu">plot</span>(ordination)</span></code></pre></div>
+</div>
+<div id="reporting-recommendations" class="section level2">
+<h2>Reporting recommendations</h2>
+<p>Analyses based on <code>taxodist</code> should report:</p>
+<ul>
+<li>the package version;</li>
+<li>the lineage retrieval or dataset-generation date;</li>
+<li>The Taxonomicon as the classification source;</li>
+<li>the distance definition;</li>
+<li>decisions involving ambiguous or missing taxa;</li>
+<li>the clustering linkage or ordination method;</li>
+<li>the number and structure of permutations;</li>
+<li>checks of multivariate dispersion when PERMANOVA is used;</li>
+<li>the distinction between hierarchy distance and evolutionary branch
+length.</li>
+</ul>
+<p>The exact package and data-source citations are available with:</p>
+<div class="sourceCode" id="cb16"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" tabindex="-1"></a><span class="fu">citation</span>(<span class="st">&quot;taxodist&quot;</span>)</span>
+<span id="cb16-2"><a href="#cb16-2" tabindex="-1"></a><span class="fu">citation</span>(<span class="st">&quot;vegan&quot;</span>)</span>
+<span id="cb16-3"><a href="#cb16-3" tabindex="-1"></a><span class="fu">citation</span>(<span class="st">&quot;ape&quot;</span>)</span></code></pre></div>
 </div>
 <div id="references" class="section level2">
 <h2>References</h2>
 <p>Anderson, M.J. (2001). A new method for non-parametric multivariate
-analysis of variance. <em>Austral Ecology</em>, 26, 32–46.</p>
+analysis of variance. <em>Austral Ecology</em>, 26, 32–46. <a href="doi:10.1046/j.1442-9993.2001.01070.x" class="uri">doi:10.1046/j.1442-9993.2001.01070.x</a>.</p>
+<p>Anderson, M.J. (2006). Distance-based tests for homogeneity of
+multivariate dispersions. <em>Biometrics</em>, 62, 245–253. <a href="doi:10.1111/j.1541-0420.2005.00440.x" class="uri">doi:10.1111/j.1541-0420.2005.00440.x</a>.</p>
+<p>Brands, S.J. (1989 onwards). <em>Systema Naturae 2000</em>.
+Amsterdam, The Netherlands. The Taxonomicon.</p>
 <p>Clarke, K.R. and Warwick, R.M. (1998). A taxonomic distinctness index
 and its statistical properties. <em>Journal of Applied Ecology</em>, 35,
-523–531.</p>
+523–531. <a href="doi:10.1046/j.1365-2664.1998.3540523.x" class="uri">doi:10.1046/j.1365-2664.1998.3540523.x</a>.</p>
 <p>Clarke, K.R. and Warwick, R.M. (2001). A further biodiversity index
 applicable to species lists: variation in taxonomic distinctness.
-<em>Marine Ecology Progress Series</em>, 216, 265–278.</p>
-<p>Brands, S.J. (1989 onwards). <em>Systema Naturae 2000</em>.
-Amsterdam, The Netherlands. Retrieved from The Taxonomicon, <a href="http://taxonomicon.taxonomy.nl" class="uri">http://taxonomicon.taxonomy.nl</a>.</p>
+<em>Marine Ecology Progress Series</em>, 216, 265–278. <a href="doi:10.3354/meps216265" class="uri">doi:10.3354/meps216265</a>.</p>
+<p>Gower, J.C. (1966). Some distance properties of latent root and
+vector methods used in multivariate analysis. <em>Biometrika</em>, 53,
+325–338. <a href="doi:10.1093/biomet/53.3-4.325" class="uri">doi:10.1093/biomet/53.3-4.325</a>.</p>
+<p>Mantel, N. (1967). The detection of disease clustering and a
+generalized regression approach. <em>Cancer Research</em>, 27,
+209–220.</p>
+<p>Paradis, E. and Schliep, K. (2019). ape 5.0: an environment for
+modern phylogenetics and evolutionary analyses in R.
+<em>Bioinformatics</em>, 35, 526–528. <a href="doi:10.1093/bioinformatics/bty633" class="uri">doi:10.1093/bioinformatics/bty633</a>.</p>
 </div>
 
 

@@ -340,286 +340,467 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 
 
 
-<div id="what-is-taxodist" class="section level2">
-<h2>What is taxodist?</h2>
-<p><code>taxodist</code> answers a simple question: <em>how related are
-any two living things?</em></p>
-<p>Given any two taxon names, a pair of dinosaurs, a dinosaur and a
-fungus, two species of fly, or an oak tree and a human,
-<code>taxodist</code> retrieves their full hierarchical lineages from <a href="http://taxonomicon.taxonomy.nl">The Taxonomicon</a> and computes a
-dissimilarity index between them.</p>
-<p>The Taxonomicon is based on <em>Systema Naturae 2000</em> (Brands,
-1989 onwards) and provides exceptionally deep lineage resolution,
-substantially exceeding other programmatic sources.</p>
-<p>Searches work at any taxonomic level: genus, species, family, order,
-or any clade. Both <code>&quot;Tyrannosaurus&quot;</code> and
-<code>&quot;Tyrannosaurus rex&quot;</code> are valid inputs, as are
-<code>&quot;Drosophila melanogaster&quot;</code>, <code>&quot;Homo sapiens&quot;</code>, or
-<code>&quot;Araucaria angustifolia&quot;</code>.</p>
-<hr />
-</div>
-<div id="the-distance-metric" class="section level2">
-<h2>The distance metric</h2>
-<p><code>taxodist</code> measures how related two taxa are by asking a
-single question: <em>how deep is their most recent common
-ancestor?</em></p>
-<p><span class="math display">\[d(A, B) =
-\frac{1}{\text{depth}(\text{MRCA}(A,B))}\]</span></p>
-<p>The deeper the shared ancestor, the smaller the distance, meaning the
-more related the two taxa are. A shallow MRCA (close to the root) means
-the two taxa diverged early and are distantly related; a deep MRCA means
-they share a long common history and are closely related.</p>
-<p>This has a key property: taxa that diverged at the same point in the
-tree are always equidistant from any third taxon, regardless of how many
-nodes each has in its lineage below the split. For example:</p>
+<div id="overview" class="section level2">
+<h2>Overview</h2>
+<p><code>taxodist</code> retrieves ordered taxonomic lineages from The
+Taxonomicon and uses them to compare named nodes in a classification
+hierarchy.</p>
+<p>The package provides functions for:</p>
 <ul>
-<li><p><em>Tyrannosaurus</em> and <em>Velociraptor</em> are both
-Tetanurae: they diverged from <em>Carnotaurus</em> (Ceratosauria) at the
-same node (Averostra), so both have exactly the same distance to
-Carnotaurus;</p></li>
-<li><p>All dinosaurs diverged from the mammal lineage at the same node
-(Amniota), so <em>Homo sapiens</em> is equally distant from
-<em>Tyrannosaurus</em>, <em>Triceratops</em>, <em>Carnotaurus</em> and
-<em>Cyanocorax</em>.</p></li>
+<li>lineage retrieval;</li>
+<li>most-recent-common-ancestor queries;</li>
+<li>taxonomic hierarchy distances;</li>
+<li>clade membership and filtering;</li>
+<li>paths between hierarchy nodes;</li>
+<li>pairwise distance matrices;</li>
+<li>clustering and principal coordinates analysis;</li>
+<li>session and persistent cache management.</li>
 </ul>
-<p>The distance is bounded to <span class="math inline">\([0,
-1]\)</span>, where 0 means identical taxa, 1 means the taxa share only
-the root as their most recent common ancestor, and smaller values
-reflect increasingly recent shared ancestry.</p>
-<hr />
+<p>Inputs may represent species, genera, families, orders, named clades,
+or other nodes available in the source classification.</p>
 </div>
-<div id="basic-usage" class="section level2">
-<h2>Basic usage</h2>
-<div id="getting-a-lineage" class="section level3">
-<h3>Getting a lineage</h3>
-<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a>lin <span class="ot">&lt;-</span> <span class="fu">get_lineage</span>(<span class="st">&quot;Tyrannosaurus&quot;</span>)</span>
-<span id="cb1-2"><a href="#cb1-2" tabindex="-1"></a><span class="fu">tail</span>(lin, <span class="dv">8</span>)</span>
-<span id="cb1-3"><a href="#cb1-3" tabindex="-1"></a><span class="co">#&gt; [1] &quot;Avetheropoda&quot;     &quot;Coelurosauria&quot;    &quot;Tyrannoraptora&quot;   &quot;Tyrannosauroidea&quot;</span></span>
-<span id="cb1-4"><a href="#cb1-4" tabindex="-1"></a><span class="co">#&gt; [5] &quot;Tyrannosauridae&quot;  &quot;Tyrannosaurinae&quot;  &quot;Tyrannosaurini&quot;   &quot;Tyrannosaurus&quot; </span></span></code></pre></div>
-<p>Species-level searches also work:</p>
-<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a>lin <span class="ot">&lt;-</span> <span class="fu">get_lineage</span>(<span class="st">&quot;Drosophila melanogaster&quot;</span>)</span>
-<span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a><span class="fu">tail</span>(lin, <span class="dv">4</span>)</span>
-<span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a><span class="co">#&gt; [1] &quot;Ephydroidea&quot;             &quot;Drosophilidae&quot;           &quot;Drosophilinae&quot;          </span></span>
-<span id="cb2-4"><a href="#cb2-4" tabindex="-1"></a><span class="co">#&gt; [4] &quot;Drosophila melanogaster&quot;</span></span></code></pre></div>
+<div id="what-the-distance-represents" class="section level2">
+<h2>What the distance represents</h2>
+<p>Let <span class="math inline">\(L_A\)</span> and <span class="math inline">\(L_B\)</span> be the ordered lineages of two
+hierarchy nodes. Let <span class="math inline">\(h(A,B)\)</span> be the
+depth of their most recent common ancestor, defined from their
+continuous common prefix.</p>
+<p>The distance is</p>
+<p><span class="math display">\[
+d(A,B) =
+\begin{cases}
+0, &amp; L_A = L_B, \\
+1/h(A,B), &amp; L_A \ne L_B.
+\end{cases}
+\]</span></p>
+<p>A deeper shared ancestor produces a smaller distance. Within a
+connected hierarchy, finite distances lie between zero and one.</p>
+<p>If two lineages have no shared root, the package returns an infinite
+distance. Missing lineages instead produce missing pairwise values in a
+distance matrix.</p>
+<p>The measure is an ultrametric within each connected hierarchy. Its
+mathematical properties and assumptions are discussed in:</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a><span class="fu">vignette</span>(<span class="st">&quot;methodological-notes&quot;</span>, <span class="at">package =</span> <span class="st">&quot;taxodist&quot;</span>)</span></code></pre></div>
 </div>
-<div id="computing-distance-between-two-taxa" class="section level3">
-<h3>Computing distance between two taxa</h3>
-<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a>result <span class="ot">&lt;-</span> <span class="fu">taxo_distance</span>(<span class="st">&quot;Tyrannosaurus&quot;</span>, <span class="st">&quot;Velociraptor&quot;</span>)</span>
-<span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a><span class="fu">print</span>(result)</span>
-<span id="cb3-3"><a href="#cb3-3" tabindex="-1"></a><span class="co">#&gt; -- Taxonomic Distance --</span></span>
-<span id="cb3-4"><a href="#cb3-4" tabindex="-1"></a><span class="co">#&gt; </span></span>
-<span id="cb3-5"><a href="#cb3-5" tabindex="-1"></a><span class="co">#&gt; * Tyrannosaurus vs Velociraptor</span></span>
-<span id="cb3-6"><a href="#cb3-6" tabindex="-1"></a><span class="co">#&gt;   Distance : 0.0153846153846154</span></span>
-<span id="cb3-7"><a href="#cb3-7" tabindex="-1"></a><span class="co">#&gt;   MRCA : Tyrannoraptora (depth 65)</span></span>
-<span id="cb3-8"><a href="#cb3-8" tabindex="-1"></a><span class="co">#&gt;   Depth A : 70</span></span>
-<span id="cb3-9"><a href="#cb3-9" tabindex="-1"></a><span class="co">#&gt;   Depth B : 73</span></span></code></pre></div>
-<p>The distance between a dinosaur and a mammal or a bacteria and a
-human is larger:</p>
-<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a><span class="fu">taxo_distance</span>(<span class="st">&quot;Tyrannosaurus&quot;</span>, <span class="st">&quot;Homo&quot;</span>)<span class="sc">$</span>distance        <span class="co"># 0.02777778</span></span>
-<span id="cb4-2"><a href="#cb4-2" tabindex="-1"></a><span class="fu">taxo_distance</span>(<span class="st">&quot;Tyrannosaurus&quot;</span>, <span class="st">&quot;Drosophila&quot;</span>)<span class="sc">$</span>distance  <span class="co"># 0.06666667</span></span>
-<span id="cb4-3"><a href="#cb4-3" tabindex="-1"></a><span class="fu">taxo_distance</span>(<span class="st">&quot;Tyrannosaurus&quot;</span>, <span class="st">&quot;Quercus&quot;</span>)<span class="sc">$</span>distance     <span class="co"># 0.25</span></span>
-<span id="cb4-4"><a href="#cb4-4" tabindex="-1"></a><span class="fu">taxo_distance</span>(<span class="st">&quot;Escherichia&quot;</span>, <span class="st">&quot;Homo&quot;</span>)<span class="sc">$</span>distance          <span class="co"># 1</span></span></code></pre></div>
+<div id="distance-and-membership-are-different" class="section level2">
+<h2>Distance and membership are different</h2>
+<p>A descendant belongs to each clade represented among its ancestors.
+However, the descendant and ancestor remain distinct hierarchy
+nodes.</p>
+<p>For example, <em>Tyrannosaurus</em> is a member of
+<em>Dinosauria</em>, but the distance between the two nodes is
+positive:</p>
+<p><span class="math display">\[
+d(\textit{Tyrannosaurus},\textit{Dinosauria})
+=
+\frac{1}{\operatorname{depth}(\textit{Dinosauria})}.
+\]</span></p>
+<p>Use:</p>
+<ul>
+<li><code>taxo_distance()</code> to compare hierarchy nodes;</li>
+<li><code>is_member()</code> to test containment within a clade;</li>
+<li><code>taxo_path()</code> to inspect the complete ancestry path
+between nodes.</li>
+</ul>
+<p>The distance represents classification depth. It is not evolutionary
+time, genetic distance, morphological divergence, or phylogenetic branch
+length.</p>
 </div>
-<div id="finding-the-most-recent-common-ancestor" class="section level3">
-<h3>Finding the most recent common ancestor</h3>
-<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" tabindex="-1"></a><span class="fu">mrca</span>(<span class="st">&quot;Tyrannosaurus&quot;</span>, <span class="st">&quot;Velociraptor&quot;</span>)  <span class="co"># &quot;Tyrannoraptora&quot;</span></span>
-<span id="cb5-2"><a href="#cb5-2" tabindex="-1"></a><span class="fu">mrca</span>(<span class="st">&quot;Tyrannosaurus&quot;</span>, <span class="st">&quot;Triceratops&quot;</span>)   <span class="co"># &quot;Dinosauria&quot;</span></span>
-<span id="cb5-3"><a href="#cb5-3" tabindex="-1"></a><span class="fu">mrca</span>(<span class="st">&quot;Tyrannosaurus&quot;</span>, <span class="st">&quot;Homo&quot;</span>)          <span class="co"># &quot;Amniota&quot;</span></span>
-<span id="cb5-4"><a href="#cb5-4" tabindex="-1"></a><span class="fu">mrca</span>(<span class="st">&quot;Tyrannosaurus&quot;</span>, <span class="st">&quot;Drosophila&quot;</span>)    <span class="co"># &quot;Nephrozoa&quot;</span></span>
-<span id="cb5-5"><a href="#cb5-5" tabindex="-1"></a><span class="fu">mrca</span>(<span class="st">&quot;Tyrannosaurus&quot;</span>, <span class="st">&quot;Quercus&quot;</span>)       <span class="co"># &quot;discaria&quot;</span></span></code></pre></div>
-<hr />
+<div id="reproducible-packaged-examples" class="section level2">
+<h2>Reproducible packaged examples</h2>
+<p>The package includes <code>taxobase</code>, a reference object
+generated from The Taxonomicon. It allows documentation and examples to
+run without contacting an external service.</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a><span class="fu">names</span>(taxobase)</span>
+<span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a><span class="co">#&gt;  [1] &quot;taxa&quot;                  &quot;found_taxa&quot;            &quot;coverage&quot;             </span></span>
+<span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a><span class="co">#&gt;  [4] &quot;matrix&quot;                &quot;pairwise&quot;              &quot;lineage_homo&quot;         </span></span>
+<span id="cb2-4"><a href="#cb2-4" tabindex="-1"></a><span class="co">#&gt;  [7] &quot;lineage_tyrannosaurus&quot; &quot;closest&quot;               &quot;filter&quot;               </span></span>
+<span id="cb2-5"><a href="#cb2-5" tabindex="-1"></a><span class="co">#&gt; [10] &quot;search&quot;                &quot;statistical_taxa&quot;      &quot;statistical_matrix&quot;   </span></span>
+<span id="cb2-6"><a href="#cb2-6" tabindex="-1"></a><span class="co">#&gt; [13] &quot;metadata&quot;</span></span>
+<span id="cb2-7"><a href="#cb2-7" tabindex="-1"></a>taxobase<span class="sc">$</span>metadata</span>
+<span id="cb2-8"><a href="#cb2-8" tabindex="-1"></a><span class="co">#&gt; $source</span></span>
+<span id="cb2-9"><a href="#cb2-9" tabindex="-1"></a><span class="co">#&gt; [1] &quot;The Taxonomicon&quot;</span></span>
+<span id="cb2-10"><a href="#cb2-10" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb2-11"><a href="#cb2-11" tabindex="-1"></a><span class="co">#&gt; $source_url</span></span>
+<span id="cb2-12"><a href="#cb2-12" tabindex="-1"></a><span class="co">#&gt; [1] &quot;http://taxonomicon.taxonomy.nl&quot;</span></span>
+<span id="cb2-13"><a href="#cb2-13" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb2-14"><a href="#cb2-14" tabindex="-1"></a><span class="co">#&gt; $generated_on</span></span>
+<span id="cb2-15"><a href="#cb2-15" tabindex="-1"></a><span class="co">#&gt; [1] &quot;2026-08-06&quot;</span></span>
+<span id="cb2-16"><a href="#cb2-16" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb2-17"><a href="#cb2-17" tabindex="-1"></a><span class="co">#&gt; $package_version</span></span>
+<span id="cb2-18"><a href="#cb2-18" tabindex="-1"></a><span class="co">#&gt; [1] &quot;0.6.0&quot;</span></span>
+<span id="cb2-19"><a href="#cb2-19" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb2-20"><a href="#cb2-20" tabindex="-1"></a><span class="co">#&gt; $distance_definition</span></span>
+<span id="cb2-21"><a href="#cb2-21" tabindex="-1"></a><span class="co">#&gt; [1] &quot;0 for identical nodes; otherwise 1 / depth(MRCA)&quot;</span></span></code></pre></div>
+<p>The metadata records the source, generation date, package version,
+and distance definition used to construct the object.</p>
+<div id="stored-lineages" class="section level3">
+<h3>Stored lineages</h3>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a><span class="fu">tail</span>(taxobase<span class="sc">$</span>lineage_tyrannosaurus)</span>
+<span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a><span class="co">#&gt; [1] &quot;Tyrannoraptora&quot;   &quot;Tyrannosauroidea&quot; &quot;Tyrannosauridae&quot;  &quot;Tyrannosaurinae&quot; </span></span>
+<span id="cb3-3"><a href="#cb3-3" tabindex="-1"></a><span class="co">#&gt; [5] &quot;Tyrannosaurini&quot;   &quot;Tyrannosaurus&quot;</span></span>
+<span id="cb3-4"><a href="#cb3-4" tabindex="-1"></a><span class="fu">tail</span>(taxobase<span class="sc">$</span>lineage_homo)</span>
+<span id="cb3-5"><a href="#cb3-5" tabindex="-1"></a><span class="co">#&gt; [1] &quot;Hominoidea&quot; &quot;Hominidae&quot;  &quot;Homininae&quot;  &quot;Hominini&quot;   &quot;Hominina&quot;  </span></span>
+<span id="cb3-6"><a href="#cb3-6" tabindex="-1"></a><span class="co">#&gt; [6] &quot;Homo&quot;</span></span></code></pre></div>
+<p>Lineages are ordered from the root of the source classification to
+the queried node.</p>
+</div>
+<div id="stored-pairwise-comparison" class="section level3">
+<h3>Stored pairwise comparison</h3>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a>taxobase<span class="sc">$</span>pairwise</span>
+<span id="cb4-2"><a href="#cb4-2" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb4-3"><a href="#cb4-3" tabindex="-1"></a><span class="co">#&gt; ── Taxonomic Distance ──</span></span>
+<span id="cb4-4"><a href="#cb4-4" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb4-5"><a href="#cb4-5" tabindex="-1"></a><span class="co">#&gt; • Tyrannosaurus vs Homo</span></span>
+<span id="cb4-6"><a href="#cb4-6" tabindex="-1"></a><span class="co">#&gt;   Distance : 0.0263157894736842</span></span>
+<span id="cb4-7"><a href="#cb4-7" tabindex="-1"></a><span class="co">#&gt;   MRCA : Amniota (depth 38)</span></span>
+<span id="cb4-8"><a href="#cb4-8" tabindex="-1"></a><span class="co">#&gt;   Depth A : 72</span></span>
+<span id="cb4-9"><a href="#cb4-9" tabindex="-1"></a><span class="co">#&gt;   Depth B : 75</span></span></code></pre></div>
+<p>A <code>taxodist_result</code> records:</p>
+<ul>
+<li>the distance;</li>
+<li>the MRCA and its depth;</li>
+<li>the depth of each complete lineage;</li>
+<li>the two queried names.</li>
+</ul>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" tabindex="-1"></a><span class="fu">class</span>(taxobase<span class="sc">$</span>pairwise)</span>
+<span id="cb5-2"><a href="#cb5-2" tabindex="-1"></a><span class="co">#&gt; [1] &quot;taxodist_result&quot;</span></span>
+<span id="cb5-3"><a href="#cb5-3" tabindex="-1"></a><span class="fu">names</span>(taxobase<span class="sc">$</span>pairwise)</span>
+<span id="cb5-4"><a href="#cb5-4" tabindex="-1"></a><span class="co">#&gt; [1] &quot;distance&quot;   &quot;mrca&quot;       &quot;mrca_depth&quot; &quot;depth_a&quot;    &quot;depth_b&quot;   </span></span>
+<span id="cb5-5"><a href="#cb5-5" tabindex="-1"></a><span class="co">#&gt; [6] &quot;taxon_a&quot;    &quot;taxon_b&quot;</span></span></code></pre></div>
+</div>
+<div id="reference-distance-matrix" class="section level3">
+<h3>Reference distance matrix</h3>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" tabindex="-1"></a>reference_matrix <span class="ot">&lt;-</span> taxobase<span class="sc">$</span>matrix</span>
+<span id="cb6-2"><a href="#cb6-2" tabindex="-1"></a></span>
+<span id="cb6-3"><a href="#cb6-3" tabindex="-1"></a><span class="fu">inherits</span>(reference_matrix, <span class="st">&quot;dist&quot;</span>)</span>
+<span id="cb6-4"><a href="#cb6-4" tabindex="-1"></a><span class="co">#&gt; [1] TRUE</span></span>
+<span id="cb6-5"><a href="#cb6-5" tabindex="-1"></a><span class="fu">attr</span>(reference_matrix, <span class="st">&quot;Size&quot;</span>)</span>
+<span id="cb6-6"><a href="#cb6-6" tabindex="-1"></a><span class="co">#&gt; [1] 52</span></span>
+<span id="cb6-7"><a href="#cb6-7" tabindex="-1"></a><span class="fu">head</span>(<span class="fu">attr</span>(reference_matrix, <span class="st">&quot;Labels&quot;</span>))</span>
+<span id="cb6-8"><a href="#cb6-8" tabindex="-1"></a><span class="co">#&gt; [1] &quot;Tyrannosaurus&quot; &quot;Velociraptor&quot;  &quot;Triceratops&quot;   &quot;Brachiosaurus&quot;</span></span>
+<span id="cb6-9"><a href="#cb6-9" tabindex="-1"></a><span class="co">#&gt; [5] &quot;Stegosaurus&quot;   &quot;Ankylosaurus&quot;</span></span>
+<span id="cb6-10"><a href="#cb6-10" tabindex="-1"></a></span>
+<span id="cb6-11"><a href="#cb6-11" tabindex="-1"></a><span class="fu">round</span>(</span>
+<span id="cb6-12"><a href="#cb6-12" tabindex="-1"></a>  <span class="fu">as.matrix</span>(reference_matrix)[<span class="dv">1</span><span class="sc">:</span><span class="dv">6</span>, <span class="dv">1</span><span class="sc">:</span><span class="dv">6</span>],</span>
+<span id="cb6-13"><a href="#cb6-13" tabindex="-1"></a>  <span class="at">digits =</span> <span class="dv">4</span></span>
+<span id="cb6-14"><a href="#cb6-14" tabindex="-1"></a>)</span>
+<span id="cb6-15"><a href="#cb6-15" tabindex="-1"></a><span class="co">#&gt;               Tyrannosaurus Velociraptor Triceratops Brachiosaurus Stegosaurus</span></span>
+<span id="cb6-16"><a href="#cb6-16" tabindex="-1"></a><span class="co">#&gt; Tyrannosaurus        0.0000       0.0149      0.0175        0.0169      0.0175</span></span>
+<span id="cb6-17"><a href="#cb6-17" tabindex="-1"></a><span class="co">#&gt; Velociraptor         0.0149       0.0000      0.0175        0.0169      0.0175</span></span>
+<span id="cb6-18"><a href="#cb6-18" tabindex="-1"></a><span class="co">#&gt; Triceratops          0.0175       0.0175      0.0000        0.0175      0.0169</span></span>
+<span id="cb6-19"><a href="#cb6-19" tabindex="-1"></a><span class="co">#&gt; Brachiosaurus        0.0169       0.0169      0.0175        0.0000      0.0175</span></span>
+<span id="cb6-20"><a href="#cb6-20" tabindex="-1"></a><span class="co">#&gt; Stegosaurus          0.0175       0.0175      0.0169        0.0175      0.0000</span></span>
+<span id="cb6-21"><a href="#cb6-21" tabindex="-1"></a><span class="co">#&gt; Ankylosaurus         0.0175       0.0175      0.0169        0.0175      0.0161</span></span>
+<span id="cb6-22"><a href="#cb6-22" tabindex="-1"></a><span class="co">#&gt;               Ankylosaurus</span></span>
+<span id="cb6-23"><a href="#cb6-23" tabindex="-1"></a><span class="co">#&gt; Tyrannosaurus       0.0175</span></span>
+<span id="cb6-24"><a href="#cb6-24" tabindex="-1"></a><span class="co">#&gt; Velociraptor        0.0175</span></span>
+<span id="cb6-25"><a href="#cb6-25" tabindex="-1"></a><span class="co">#&gt; Triceratops         0.0169</span></span>
+<span id="cb6-26"><a href="#cb6-26" tabindex="-1"></a><span class="co">#&gt; Brachiosaurus       0.0175</span></span>
+<span id="cb6-27"><a href="#cb6-27" tabindex="-1"></a><span class="co">#&gt; Stegosaurus         0.0161</span></span>
+<span id="cb6-28"><a href="#cb6-28" tabindex="-1"></a><span class="co">#&gt; Ankylosaurus        0.0000</span></span></code></pre></div>
+<p>A matrix returned by <code>distance_matrix()</code> is a standard R
+<code>dist</code> object. It is symmetric, has a zero diagonal, and can
+be supplied to functions accepting pairwise dissimilarities.</p>
+</div>
+</div>
+<div id="live-lineage-queries" class="section level2">
+<h2>Live lineage queries</h2>
+<p>The following examples contact The Taxonomicon and are not evaluated
+while the vignette is built.</p>
+<div id="retrieving-a-lineage" class="section level3">
+<h3>Retrieving a lineage</h3>
+<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" tabindex="-1"></a><span class="fu">get_lineage</span>(<span class="st">&quot;Tyrannosaurus&quot;</span>)</span>
+<span id="cb7-2"><a href="#cb7-2" tabindex="-1"></a><span class="fu">get_lineage</span>(<span class="st">&quot;Drosophila melanogaster&quot;</span>)</span></code></pre></div>
+<p>Numeric Taxonomicon identifiers can also be supplied directly:</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" tabindex="-1"></a><span class="fu">get_lineage</span>(<span class="st">&quot;67263&quot;</span>)</span></code></pre></div>
+<p>Using an identifier is useful when a name corresponds to more than
+one valid taxonomic entry.</p>
+</div>
+<div id="computing-a-pairwise-distance" class="section level3">
+<h3>Computing a pairwise distance</h3>
+<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" tabindex="-1"></a>result <span class="ot">&lt;-</span> <span class="fu">taxo_distance</span>(</span>
+<span id="cb9-2"><a href="#cb9-2" tabindex="-1"></a>  <span class="st">&quot;Tyrannosaurus&quot;</span>,</span>
+<span id="cb9-3"><a href="#cb9-3" tabindex="-1"></a>  <span class="st">&quot;Velociraptor&quot;</span></span>
+<span id="cb9-4"><a href="#cb9-4" tabindex="-1"></a>)</span>
+<span id="cb9-5"><a href="#cb9-5" tabindex="-1"></a></span>
+<span id="cb9-6"><a href="#cb9-6" tabindex="-1"></a>result</span>
+<span id="cb9-7"><a href="#cb9-7" tabindex="-1"></a>result<span class="sc">$</span>distance</span>
+<span id="cb9-8"><a href="#cb9-8" tabindex="-1"></a>result<span class="sc">$</span>mrca</span></code></pre></div>
+</div>
+<div id="finding-the-mrca" class="section level3">
+<h3>Finding the MRCA</h3>
+<div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" tabindex="-1"></a><span class="fu">mrca</span>(<span class="st">&quot;Tyrannosaurus&quot;</span>, <span class="st">&quot;Velociraptor&quot;</span>)</span>
+<span id="cb10-2"><a href="#cb10-2" tabindex="-1"></a><span class="fu">mrca</span>(<span class="st">&quot;Tyrannosaurus&quot;</span>, <span class="st">&quot;Triceratops&quot;</span>)</span>
+<span id="cb10-3"><a href="#cb10-3" tabindex="-1"></a><span class="fu">mrca</span>(<span class="st">&quot;Tyrannosaurus&quot;</span>, <span class="st">&quot;Homo&quot;</span>)</span></code></pre></div>
+<p>The returned MRCA depends on the classification currently provided by
+The Taxonomicon and may change following taxonomic revisions.</p>
+</div>
+<div id="inspecting-the-path-between-nodes" class="section level3">
+<h3>Inspecting the path between nodes</h3>
+<div class="sourceCode" id="cb11"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" tabindex="-1"></a><span class="fu">taxo_path</span>(</span>
+<span id="cb11-2"><a href="#cb11-2" tabindex="-1"></a>  <span class="st">&quot;Tyrannosaurus&quot;</span>,</span>
+<span id="cb11-3"><a href="#cb11-3" tabindex="-1"></a>  <span class="st">&quot;Triceratops&quot;</span></span>
+<span id="cb11-4"><a href="#cb11-4" tabindex="-1"></a>)</span>
+<span id="cb11-5"><a href="#cb11-5" tabindex="-1"></a></span>
+<span id="cb11-6"><a href="#cb11-6" tabindex="-1"></a><span class="fu">taxo_path</span>(</span>
+<span id="cb11-7"><a href="#cb11-7" tabindex="-1"></a>  <span class="st">&quot;Dinosauria&quot;</span>,</span>
+<span id="cb11-8"><a href="#cb11-8" tabindex="-1"></a>  <span class="st">&quot;Tyrannosaurus&quot;</span></span>
+<span id="cb11-9"><a href="#cb11-9" tabindex="-1"></a>)</span></code></pre></div>
+<p>The path ascends from the first node to the MRCA and descends toward
+the second node. For an ancestor-descendant pair, the ancestor itself is
+the MRCA.</p>
 </div>
 </div>
 <div id="working-with-multiple-taxa" class="section level2">
 <h2>Working with multiple taxa</h2>
-<div id="pairwise-distance-matrix" class="section level3">
-<h3>Pairwise distance matrix</h3>
-<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" tabindex="-1"></a>taxa <span class="ot">&lt;-</span> <span class="fu">c</span>(</span>
-<span id="cb6-2"><a href="#cb6-2" tabindex="-1"></a>  <span class="st">&quot;Tyrannosaurus&quot;</span>, <span class="st">&quot;Carnotaurus&quot;</span>, <span class="st">&quot;Triceratops&quot;</span>,</span>
-<span id="cb6-3"><a href="#cb6-3" tabindex="-1"></a>  <span class="st">&quot;Parasaurolophus&quot;</span>, <span class="st">&quot;Stegosaurus&quot;</span>, <span class="st">&quot;Brachiosaurus&quot;</span>,</span>
-<span id="cb6-4"><a href="#cb6-4" tabindex="-1"></a>  <span class="st">&quot;Homo sapiens&quot;</span>, <span class="st">&quot;Homo neanderthalensis&quot;</span>, <span class="st">&quot;Pan troglodytes&quot;</span>,</span>
-<span id="cb6-5"><a href="#cb6-5" tabindex="-1"></a>  <span class="st">&quot;Panthera leo&quot;</span>, <span class="st">&quot;Canis lupus&quot;</span>,</span>
-<span id="cb6-6"><a href="#cb6-6" tabindex="-1"></a>  <span class="st">&quot;Ornithorhynchus anatinus&quot;</span>,</span>
-<span id="cb6-7"><a href="#cb6-7" tabindex="-1"></a>  <span class="st">&quot;Loxodonta africana&quot;</span>,       </span>
-<span id="cb6-8"><a href="#cb6-8" tabindex="-1"></a>  <span class="st">&quot;Struthio camelus&quot;</span>,           </span>
-<span id="cb6-9"><a href="#cb6-9" tabindex="-1"></a>  <span class="st">&quot;Aptenodytes forsteri&quot;</span>,       </span>
-<span id="cb6-10"><a href="#cb6-10" tabindex="-1"></a>  <span class="st">&quot;Ara ararauna&quot;</span>,            </span>
-<span id="cb6-11"><a href="#cb6-11" tabindex="-1"></a>  <span class="st">&quot;Crocodylus niloticus&quot;</span>,</span>
-<span id="cb6-12"><a href="#cb6-12" tabindex="-1"></a>  <span class="st">&quot;Chelonia mydas&quot;</span>,</span>
-<span id="cb6-13"><a href="#cb6-13" tabindex="-1"></a>  <span class="st">&quot;Ambystoma mexicanum&quot;</span>,</span>
-<span id="cb6-14"><a href="#cb6-14" tabindex="-1"></a>  <span class="st">&quot;Octopus vulgaris&quot;</span>,</span>
-<span id="cb6-15"><a href="#cb6-15" tabindex="-1"></a>  <span class="st">&quot;Carcharodon carcharias&quot;</span>,    </span>
-<span id="cb6-16"><a href="#cb6-16" tabindex="-1"></a>  <span class="st">&quot;Balaenoptera musculus&quot;</span>,   </span>
-<span id="cb6-17"><a href="#cb6-17" tabindex="-1"></a>  <span class="st">&quot;Drosophila melanogaster&quot;</span>,</span>
-<span id="cb6-18"><a href="#cb6-18" tabindex="-1"></a>  <span class="st">&quot;Apis mellifera&quot;</span>,</span>
-<span id="cb6-19"><a href="#cb6-19" tabindex="-1"></a>  <span class="st">&quot;Arabidopsis thaliana&quot;</span>,</span>
-<span id="cb6-20"><a href="#cb6-20" tabindex="-1"></a>  <span class="st">&quot;Quercus robur&quot;</span>,</span>
-<span id="cb6-21"><a href="#cb6-21" tabindex="-1"></a>  <span class="st">&quot;Ginkgo biloba&quot;</span>,</span>
-<span id="cb6-22"><a href="#cb6-22" tabindex="-1"></a>  <span class="st">&quot;Welwitschia mirabilis&quot;</span>,</span>
-<span id="cb6-23"><a href="#cb6-23" tabindex="-1"></a>  <span class="st">&quot;Saccharomyces cerevisiae&quot;</span>,</span>
-<span id="cb6-24"><a href="#cb6-24" tabindex="-1"></a>  <span class="st">&quot;Escherichia coli&quot;</span>,</span>
-<span id="cb6-25"><a href="#cb6-25" tabindex="-1"></a>  <span class="st">&quot;Bacillus subtilis&quot;</span>,</span>
-<span id="cb6-26"><a href="#cb6-26" tabindex="-1"></a>  <span class="st">&quot;Plasmodium falciparum&quot;</span></span>
-<span id="cb6-27"><a href="#cb6-27" tabindex="-1"></a>)</span>
-<span id="cb6-28"><a href="#cb6-28" tabindex="-1"></a>mat <span class="ot">&lt;-</span> <span class="fu">distance_matrix</span>(taxa)</span>
-<span id="cb6-29"><a href="#cb6-29" tabindex="-1"></a><span class="fu">print</span>(mat)</span></code></pre></div>
-<p>The matrix is symmetric with zeros on the diagonal.</p>
+<div id="constructing-a-distance-matrix" class="section level3">
+<h3>Constructing a distance matrix</h3>
+<div class="sourceCode" id="cb12"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" tabindex="-1"></a>taxa <span class="ot">&lt;-</span> <span class="fu">c</span>(</span>
+<span id="cb12-2"><a href="#cb12-2" tabindex="-1"></a>  <span class="st">&quot;Tyrannosaurus&quot;</span>,</span>
+<span id="cb12-3"><a href="#cb12-3" tabindex="-1"></a>  <span class="st">&quot;Velociraptor&quot;</span>,</span>
+<span id="cb12-4"><a href="#cb12-4" tabindex="-1"></a>  <span class="st">&quot;Spinosaurus&quot;</span>,</span>
+<span id="cb12-5"><a href="#cb12-5" tabindex="-1"></a>  <span class="st">&quot;Allosaurus&quot;</span></span>
+<span id="cb12-6"><a href="#cb12-6" tabindex="-1"></a>)</span>
+<span id="cb12-7"><a href="#cb12-7" tabindex="-1"></a></span>
+<span id="cb12-8"><a href="#cb12-8" tabindex="-1"></a>mat <span class="ot">&lt;-</span> <span class="fu">distance_matrix</span>(</span>
+<span id="cb12-9"><a href="#cb12-9" tabindex="-1"></a>  taxa,</span>
+<span id="cb12-10"><a href="#cb12-10" tabindex="-1"></a>  <span class="at">progress =</span> <span class="cn">TRUE</span></span>
+<span id="cb12-11"><a href="#cb12-11" tabindex="-1"></a>)</span>
+<span id="cb12-12"><a href="#cb12-12" tabindex="-1"></a></span>
+<span id="cb12-13"><a href="#cb12-13" tabindex="-1"></a>mat</span></code></pre></div>
+<p>Lineages are retrieved once and cached for subsequent
+comparisons.</p>
 </div>
-<div id="built-in-clustering-and-ordination" class="section level3">
-<h3>Built-in Clustering and Ordination</h3>
-<p><code>taxodist</code> has wrapper functions for basic multivariate
-exploration of these matrices, saving you from manually writing
-boilerplate code:</p>
-<div id="hierarchical-clustering" class="section level4">
-<h4>Hierarchical Clustering</h4>
-<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" tabindex="-1"></a>cl <span class="ot">&lt;-</span> <span class="fu">taxo_cluster</span>(taxa)</span>
-<span id="cb7-2"><a href="#cb7-2" tabindex="-1"></a><span class="fu">plot</span>(cl)</span></code></pre></div>
+<div id="finding-the-closest-candidates" class="section level3">
+<h3>Finding the closest candidates</h3>
+<p>A stored example is available in <code>taxobase</code>:</p>
+<div class="sourceCode" id="cb13"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" tabindex="-1"></a>taxobase<span class="sc">$</span>closest</span>
+<span id="cb13-2"><a href="#cb13-2" tabindex="-1"></a><span class="co">#&gt;           taxon   distance</span></span>
+<span id="cb13-3"><a href="#cb13-3" tabindex="-1"></a><span class="co">#&gt; 1  Velociraptor 0.01492537</span></span>
+<span id="cb13-4"><a href="#cb13-4" tabindex="-1"></a><span class="co">#&gt; 3 Brachiosaurus 0.01694915</span></span>
+<span id="cb13-5"><a href="#cb13-5" tabindex="-1"></a><span class="co">#&gt; 2   Triceratops 0.01754386</span></span>
+<span id="cb13-6"><a href="#cb13-6" tabindex="-1"></a><span class="co">#&gt; 4      Panthera 0.02631579</span></span>
+<span id="cb13-7"><a href="#cb13-7" tabindex="-1"></a><span class="co">#&gt; 6    Drosophila 0.06666667</span></span>
+<span id="cb13-8"><a href="#cb13-8" tabindex="-1"></a><span class="co">#&gt; 5       Quercus 0.25000000</span></span></code></pre></div>
+<p>For a live query:</p>
+<div class="sourceCode" id="cb14"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" tabindex="-1"></a><span class="fu">closest_relative</span>(</span>
+<span id="cb14-2"><a href="#cb14-2" tabindex="-1"></a>  <span class="st">&quot;Carnotaurus&quot;</span>,</span>
+<span id="cb14-3"><a href="#cb14-3" tabindex="-1"></a>  <span class="fu">c</span>(</span>
+<span id="cb14-4"><a href="#cb14-4" tabindex="-1"></a>    <span class="st">&quot;Aucasaurus&quot;</span>,</span>
+<span id="cb14-5"><a href="#cb14-5" tabindex="-1"></a>    <span class="st">&quot;Velociraptor&quot;</span>,</span>
+<span id="cb14-6"><a href="#cb14-6" tabindex="-1"></a>    <span class="st">&quot;Triceratops&quot;</span>,</span>
+<span id="cb14-7"><a href="#cb14-7" tabindex="-1"></a>    <span class="st">&quot;Brachiosaurus&quot;</span></span>
+<span id="cb14-8"><a href="#cb14-8" tabindex="-1"></a>  )</span>
+<span id="cb14-9"><a href="#cb14-9" tabindex="-1"></a>)</span></code></pre></div>
+<p>Candidates are sorted from smallest to largest distance. A missing
+candidate is retained with a missing distance.</p>
 </div>
-<div id="pcoa" class="section level4">
-<h4>PCoA</h4>
-<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" tabindex="-1"></a>ord <span class="ot">&lt;-</span> <span class="fu">taxo_ordinate</span>(taxa)</span>
-<span id="cb8-2"><a href="#cb8-2" tabindex="-1"></a><span class="fu">summary</span>(ord)</span>
-<span id="cb8-3"><a href="#cb8-3" tabindex="-1"></a><span class="fu">plot</span>(ord)</span></code></pre></div>
-</div>
-<div id="heatmap-visualization" class="section level4">
-<h4>Heatmap visualization</h4>
-<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" tabindex="-1"></a><span class="fu">taxo_heatmap</span>(taxa)</span></code></pre></div>
-</div>
-</div>
-<div id="finding-the-closest-relative" class="section level3">
-<h3>Finding the closest relative</h3>
-<div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" tabindex="-1"></a><span class="fu">closest_relative</span>(</span>
-<span id="cb10-2"><a href="#cb10-2" tabindex="-1"></a>  <span class="st">&quot;Carnotaurus&quot;</span>,</span>
-<span id="cb10-3"><a href="#cb10-3" tabindex="-1"></a>  <span class="fu">c</span>(<span class="st">&quot;Aucasaurus&quot;</span>, <span class="st">&quot;Velociraptor&quot;</span>, <span class="st">&quot;Triceratops&quot;</span>,</span>
-<span id="cb10-4"><a href="#cb10-4" tabindex="-1"></a>    <span class="st">&quot;Brachiosaurus&quot;</span>, <span class="st">&quot;Homo sapiens&quot;</span>, <span class="st">&quot;Apis mellifera&quot;</span>)</span>
-<span id="cb10-5"><a href="#cb10-5" tabindex="-1"></a>)</span>
-<span id="cb10-6"><a href="#cb10-6" tabindex="-1"></a><span class="co">#&gt;            taxon   distance</span></span>
-<span id="cb10-7"><a href="#cb10-7" tabindex="-1"></a><span class="co">#&gt; 1     Aucasaurus 0.01515152</span></span>
-<span id="cb10-8"><a href="#cb10-8" tabindex="-1"></a><span class="co">#&gt; 2   Velociraptor 0.01666667</span></span>
-<span id="cb10-9"><a href="#cb10-9" tabindex="-1"></a><span class="co">#&gt; 4  Brachiosaurus 0.01754386</span></span>
-<span id="cb10-10"><a href="#cb10-10" tabindex="-1"></a><span class="co">#&gt; 3    Triceratops 0.01818182</span></span>
-<span id="cb10-11"><a href="#cb10-11" tabindex="-1"></a><span class="co">#&gt; 5   Homo sapiens 0.02777778</span></span>
-<span id="cb10-12"><a href="#cb10-12" tabindex="-1"></a><span class="co">#&gt; 6 Apis mellifera 0.06666667</span></span></code></pre></div>
-<hr />
+<div id="focal-distances" class="section level3">
+<h3>Focal distances</h3>
+<div class="sourceCode" id="cb15"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" tabindex="-1"></a><span class="fu">focal_distances</span>(</span>
+<span id="cb15-2"><a href="#cb15-2" tabindex="-1"></a>  <span class="at">focal =</span> <span class="st">&quot;Tyrannosaurus&quot;</span>,</span>
+<span id="cb15-3"><a href="#cb15-3" tabindex="-1"></a>  <span class="at">community =</span> <span class="fu">c</span>(</span>
+<span id="cb15-4"><a href="#cb15-4" tabindex="-1"></a>    <span class="st">&quot;Velociraptor&quot;</span>,</span>
+<span id="cb15-5"><a href="#cb15-5" tabindex="-1"></a>    <span class="st">&quot;Triceratops&quot;</span>,</span>
+<span id="cb15-6"><a href="#cb15-6" tabindex="-1"></a>    <span class="st">&quot;Spinosaurus&quot;</span></span>
+<span id="cb15-7"><a href="#cb15-7" tabindex="-1"></a>  )</span>
+<span id="cb15-8"><a href="#cb15-8" tabindex="-1"></a>)</span></code></pre></div>
+<p>This produces a table containing the candidate name, distance, MRCA,
+and MRCA depth.</p>
 </div>
 </div>
-<div id="lineage-utilities" class="section level2">
-<h2>Lineage utilities</h2>
-<div id="comparing-lineages-side-by-side" class="section level3">
-<h3>Comparing lineages side by side</h3>
-<div class="sourceCode" id="cb11"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" tabindex="-1"></a><span class="fu">compare_lineages</span>(<span class="st">&quot;Carnotaurus&quot;</span>, <span class="st">&quot;Tyrannosaurus&quot;</span>)</span>
-<span id="cb11-2"><a href="#cb11-2" tabindex="-1"></a><span class="co">#&gt; -- Lineage Comparison --</span></span>
-<span id="cb11-3"><a href="#cb11-3" tabindex="-1"></a><span class="co">#&gt; MRCA: Averostra at depth 60</span></span>
-<span id="cb11-4"><a href="#cb11-4" tabindex="-1"></a><span class="co">#&gt;</span></span>
-<span id="cb11-5"><a href="#cb11-5" tabindex="-1"></a><span class="co">#&gt; Shared lineage (60 nodes):</span></span>
-<span id="cb11-6"><a href="#cb11-6" tabindex="-1"></a><span class="co">#&gt;   Biota ... Theropoda</span></span>
-<span id="cb11-7"><a href="#cb11-7" tabindex="-1"></a><span class="co">#&gt;</span></span>
-<span id="cb11-8"><a href="#cb11-8" tabindex="-1"></a><span class="co">#&gt; Carnotaurus only (7 nodes):</span></span>
-<span id="cb11-9"><a href="#cb11-9" tabindex="-1"></a><span class="co">#&gt; Ceratosauria</span></span>
-<span id="cb11-10"><a href="#cb11-10" tabindex="-1"></a><span class="co">#&gt; Neoceratosauria</span></span>
-<span id="cb11-11"><a href="#cb11-11" tabindex="-1"></a><span class="co">#&gt; Abelisauroidea</span></span>
-<span id="cb11-12"><a href="#cb11-12" tabindex="-1"></a><span class="co">#&gt; Abelisauria</span></span>
-<span id="cb11-13"><a href="#cb11-13" tabindex="-1"></a><span class="co">#&gt; Abelisauridae</span></span>
-<span id="cb11-14"><a href="#cb11-14" tabindex="-1"></a><span class="co">#&gt; Carnotaurinae</span></span>
-<span id="cb11-15"><a href="#cb11-15" tabindex="-1"></a><span class="co">#&gt; Carnotaurus</span></span>
-<span id="cb11-16"><a href="#cb11-16" tabindex="-1"></a><span class="co">#&gt;</span></span>
-<span id="cb11-17"><a href="#cb11-17" tabindex="-1"></a><span class="co">#&gt; Tyrannosaurus only (10 nodes):</span></span>
-<span id="cb11-18"><a href="#cb11-18" tabindex="-1"></a><span class="co">#&gt; Tetanurae</span></span>
-<span id="cb11-19"><a href="#cb11-19" tabindex="-1"></a><span class="co">#&gt; Orionides</span></span>
-<span id="cb11-20"><a href="#cb11-20" tabindex="-1"></a><span class="co">#&gt; ...</span></span></code></pre></div>
+<div id="clade-operations" class="section level2">
+<h2>Clade operations</h2>
+<div id="testing-membership" class="section level3">
+<h3>Testing membership</h3>
+<div class="sourceCode" id="cb16"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" tabindex="-1"></a><span class="fu">is_member</span>(<span class="st">&quot;Tyrannosaurus&quot;</span>, <span class="st">&quot;Dinosauria&quot;</span>)</span>
+<span id="cb16-2"><a href="#cb16-2" tabindex="-1"></a><span class="fu">is_member</span>(<span class="st">&quot;Tyrannosaurus&quot;</span>, <span class="st">&quot;Theropoda&quot;</span>)</span>
+<span id="cb16-3"><a href="#cb16-3" tabindex="-1"></a><span class="fu">is_member</span>(<span class="st">&quot;Tyrannosaurus&quot;</span>, <span class="st">&quot;Ornithischia&quot;</span>)</span></code></pre></div>
+<p>Matching is case-insensitive, ignores surrounding whitespace, and
+requires the complete clade name rather than a partial substring.</p>
 </div>
-<div id="listing-shared-clades" class="section level3">
-<h3>Listing shared clades</h3>
-<div class="sourceCode" id="cb12"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" tabindex="-1"></a><span class="co"># what do a fly and a beetle have in common?</span></span>
-<span id="cb12-2"><a href="#cb12-2" tabindex="-1"></a><span class="fu">shared_clades</span>(<span class="st">&quot;Drosophila melanogaster&quot;</span>, <span class="st">&quot;Tribolium castaneum&quot;</span>)</span>
-<span id="cb12-3"><a href="#cb12-3" tabindex="-1"></a><span class="co"># returns their shared lineage from Biota down to their MRCA</span></span>
-<span id="cb12-4"><a href="#cb12-4" tabindex="-1"></a></span>
-<span id="cb12-5"><a href="#cb12-5" tabindex="-1"></a><span class="co"># what do T. rex and a rose share?</span></span>
-<span id="cb12-6"><a href="#cb12-6" tabindex="-1"></a><span class="fu">shared_clades</span>(<span class="st">&quot;Tyrannosaurus rex&quot;</span>, <span class="st">&quot;Rosa agrestis&quot;</span>)</span></code></pre></div>
+<div id="filtering-taxa" class="section level3">
+<h3>Filtering taxa</h3>
+<p>The package data include a stored filtering example:</p>
+<div class="sourceCode" id="cb17"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" tabindex="-1"></a>taxobase<span class="sc">$</span>filter</span>
+<span id="cb17-2"><a href="#cb17-2" tabindex="-1"></a><span class="co">#&gt;  [1] &quot;Tyrannosaurus&quot; &quot;Velociraptor&quot;  &quot;Spinosaurus&quot;   &quot;Gallus&quot;       </span></span>
+<span id="cb17-3"><a href="#cb17-3" tabindex="-1"></a><span class="co">#&gt;  [5] &quot;Struthio&quot;      &quot;Falco&quot;         &quot;Corvus&quot;        &quot;Spheniscus&quot;   </span></span>
+<span id="cb17-4"><a href="#cb17-4" tabindex="-1"></a><span class="co">#&gt;  [9] &quot;Aquila&quot;        &quot;Ara&quot;           &quot;Passer&quot;</span></span></code></pre></div>
+<p>A live operation can be performed with:</p>
+<div class="sourceCode" id="cb18"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" tabindex="-1"></a>taxa <span class="ot">&lt;-</span> <span class="fu">c</span>(</span>
+<span id="cb18-2"><a href="#cb18-2" tabindex="-1"></a>  <span class="st">&quot;Tyrannosaurus&quot;</span>,</span>
+<span id="cb18-3"><a href="#cb18-3" tabindex="-1"></a>  <span class="st">&quot;Carnotaurus&quot;</span>,</span>
+<span id="cb18-4"><a href="#cb18-4" tabindex="-1"></a>  <span class="st">&quot;Triceratops&quot;</span>,</span>
+<span id="cb18-5"><a href="#cb18-5" tabindex="-1"></a>  <span class="st">&quot;Velociraptor&quot;</span>,</span>
+<span id="cb18-6"><a href="#cb18-6" tabindex="-1"></a>  <span class="st">&quot;Homo&quot;</span>,</span>
+<span id="cb18-7"><a href="#cb18-7" tabindex="-1"></a>  <span class="st">&quot;Drosophila&quot;</span></span>
+<span id="cb18-8"><a href="#cb18-8" tabindex="-1"></a>)</span>
+<span id="cb18-9"><a href="#cb18-9" tabindex="-1"></a></span>
+<span id="cb18-10"><a href="#cb18-10" tabindex="-1"></a><span class="fu">filter_clade</span>(taxa, <span class="st">&quot;Dinosauria&quot;</span>)</span>
+<span id="cb18-11"><a href="#cb18-11" tabindex="-1"></a><span class="fu">filter_clade</span>(taxa, <span class="st">&quot;Theropoda&quot;</span>)</span></code></pre></div>
 </div>
-<div id="testing-clade-membership" class="section level3">
-<h3>Testing clade membership</h3>
-<div class="sourceCode" id="cb13"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" tabindex="-1"></a><span class="fu">is_member</span>(<span class="st">&quot;Tyrannosaurus&quot;</span>, <span class="st">&quot;Theropoda&quot;</span>)          <span class="co"># TRUE</span></span>
-<span id="cb13-2"><a href="#cb13-2" tabindex="-1"></a><span class="fu">is_member</span>(<span class="st">&quot;Carnotaurus&quot;</span>, <span class="st">&quot;Abelisauridae&quot;</span>)        <span class="co"># TRUE</span></span>
-<span id="cb13-3"><a href="#cb13-3" tabindex="-1"></a><span class="fu">is_member</span>(<span class="st">&quot;Triceratops&quot;</span>, <span class="st">&quot;Theropoda&quot;</span>)            <span class="co"># FALSE</span></span>
-<span id="cb13-4"><a href="#cb13-4" tabindex="-1"></a><span class="fu">is_member</span>(<span class="st">&quot;Homo sapiens&quot;</span>, <span class="st">&quot;Amniota&quot;</span>)             <span class="co"># TRUE</span></span>
-<span id="cb13-5"><a href="#cb13-5" tabindex="-1"></a><span class="fu">is_member</span>(<span class="st">&quot;Drosophila melanogaster&quot;</span>, <span class="st">&quot;Insecta&quot;</span>)  <span class="co"># TRUE</span></span>
-<span id="cb13-6"><a href="#cb13-6" tabindex="-1"></a><span class="fu">is_member</span>(<span class="st">&quot;Quercus robur&quot;</span>, <span class="st">&quot;Animalia&quot;</span>)           <span class="co"># FALSE</span></span></code></pre></div>
-</div>
-<div id="filtering-a-list-of-taxa-by-clade" class="section level3">
-<h3>Filtering a list of taxa by clade</h3>
-<div class="sourceCode" id="cb14"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" tabindex="-1"></a>taxa <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">&quot;Tyrannosaurus&quot;</span>, <span class="st">&quot;Carnotaurus&quot;</span>, <span class="st">&quot;Triceratops&quot;</span>,</span>
-<span id="cb14-2"><a href="#cb14-2" tabindex="-1"></a>          <span class="st">&quot;Velociraptor&quot;</span>, <span class="st">&quot;Homo sapiens&quot;</span>, <span class="st">&quot;Drosophila melanogaster&quot;</span>,</span>
-<span id="cb14-3"><a href="#cb14-3" tabindex="-1"></a>          <span class="st">&quot;Quercus robur&quot;</span>, <span class="st">&quot;Saccharomyces cerevisiae&quot;</span>)</span>
-<span id="cb14-4"><a href="#cb14-4" tabindex="-1"></a></span>
-<span id="cb14-5"><a href="#cb14-5" tabindex="-1"></a><span class="fu">filter_clade</span>(taxa, <span class="st">&quot;Dinosauria&quot;</span>)</span>
-<span id="cb14-6"><a href="#cb14-6" tabindex="-1"></a><span class="co">#&gt; [1] &quot;Tyrannosaurus&quot; &quot;Carnotaurus&quot;   &quot;Triceratops&quot;   &quot;Velociraptor&quot;</span></span>
-<span id="cb14-7"><a href="#cb14-7" tabindex="-1"></a></span>
-<span id="cb14-8"><a href="#cb14-8" tabindex="-1"></a><span class="fu">filter_clade</span>(taxa, <span class="st">&quot;Theropoda&quot;</span>)</span>
-<span id="cb14-9"><a href="#cb14-9" tabindex="-1"></a><span class="co">#&gt; [1] &quot;Tyrannosaurus&quot; &quot;Carnotaurus&quot;   &quot;Velociraptor&quot;</span></span>
-<span id="cb14-10"><a href="#cb14-10" tabindex="-1"></a></span>
-<span id="cb14-11"><a href="#cb14-11" tabindex="-1"></a><span class="fu">filter_clade</span>(taxa, <span class="st">&quot;Animalia&quot;</span>)</span>
-<span id="cb14-12"><a href="#cb14-12" tabindex="-1"></a><span class="co">#&gt; [1] &quot;Tyrannosaurus&quot;          &quot;Carnotaurus&quot;</span></span>
-<span id="cb14-13"><a href="#cb14-13" tabindex="-1"></a><span class="co">#&gt; [3] &quot;Triceratops&quot;            &quot;Velociraptor&quot;</span></span>
-<span id="cb14-14"><a href="#cb14-14" tabindex="-1"></a><span class="co">#&gt; [5] &quot;Homo sapiens&quot;           &quot;Drosophila melanogaster&quot;</span></span></code></pre></div>
-<hr />
+<div id="shared-clades-and-lineage-comparison" class="section level3">
+<h3>Shared clades and lineage comparison</h3>
+<div class="sourceCode" id="cb19"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" tabindex="-1"></a><span class="fu">shared_clades</span>(</span>
+<span id="cb19-2"><a href="#cb19-2" tabindex="-1"></a>  <span class="st">&quot;Tyrannosaurus&quot;</span>,</span>
+<span id="cb19-3"><a href="#cb19-3" tabindex="-1"></a>  <span class="st">&quot;Triceratops&quot;</span></span>
+<span id="cb19-4"><a href="#cb19-4" tabindex="-1"></a>)</span>
+<span id="cb19-5"><a href="#cb19-5" tabindex="-1"></a></span>
+<span id="cb19-6"><a href="#cb19-6" tabindex="-1"></a><span class="fu">compare_lineages</span>(</span>
+<span id="cb19-7"><a href="#cb19-7" tabindex="-1"></a>  <span class="st">&quot;Carnotaurus&quot;</span>,</span>
+<span id="cb19-8"><a href="#cb19-8" tabindex="-1"></a>  <span class="st">&quot;Tyrannosaurus&quot;</span></span>
+<span id="cb19-9"><a href="#cb19-9" tabindex="-1"></a>)</span></code></pre></div>
+<p>Shared ancestry is determined from the continuous common lineage
+prefix. A name repeated after the first divergence is not treated as a
+shared ancestor.</p>
 </div>
 </div>
-<div id="coverage-and-caching" class="section level2">
-<h2>Coverage and caching</h2>
-<div id="checking-coverage-before-a-large-run" class="section level3">
-<h3>Checking coverage before a large run</h3>
-<div class="sourceCode" id="cb15"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" tabindex="-1"></a>taxa <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">&quot;Tyrannosaurus&quot;</span>, <span class="st">&quot;Velociraptor&quot;</span>, <span class="st">&quot;Apis mellifera&quot;</span>, <span class="st">&quot;Fakeosaurus&quot;</span>)</span>
-<span id="cb15-2"><a href="#cb15-2" tabindex="-1"></a><span class="fu">check_coverage</span>(taxa)</span>
-<span id="cb15-3"><a href="#cb15-3" tabindex="-1"></a><span class="co">#&gt;  Tyrannosaurus  Velociraptor  Apis mellifera    Fakeosaurus</span></span>
-<span id="cb15-4"><a href="#cb15-4" tabindex="-1"></a><span class="co">#&gt;           TRUE          TRUE            TRUE          FALSE</span></span></code></pre></div>
-<p>Use <code>check_coverage()</code> to pre-screen a list before running
-<code>distance_matrix()</code> on a large dataset — taxa that return
-<code>FALSE</code> will produce <code>NA</code> distances.</p>
+<div id="clustering-ordination-and-visualization" class="section level2">
+<h2>Clustering, ordination, and visualization</h2>
+<p>The following examples use a subset of the packaged matrix and
+therefore require no network access.</p>
+<div class="sourceCode" id="cb20"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" tabindex="-1"></a>labels <span class="ot">&lt;-</span> <span class="fu">attr</span>(reference_matrix, <span class="st">&quot;Labels&quot;</span>)[<span class="dv">1</span><span class="sc">:</span><span class="dv">8</span>]</span>
+<span id="cb20-2"><a href="#cb20-2" tabindex="-1"></a></span>
+<span id="cb20-3"><a href="#cb20-3" tabindex="-1"></a>example_matrix <span class="ot">&lt;-</span> stats<span class="sc">::</span><span class="fu">as.dist</span>(</span>
+<span id="cb20-4"><a href="#cb20-4" tabindex="-1"></a>  <span class="fu">as.matrix</span>(reference_matrix)[labels, labels]</span>
+<span id="cb20-5"><a href="#cb20-5" tabindex="-1"></a>)</span>
+<span id="cb20-6"><a href="#cb20-6" tabindex="-1"></a></span>
+<span id="cb20-7"><a href="#cb20-7" tabindex="-1"></a>example_matrix</span>
+<span id="cb20-8"><a href="#cb20-8" tabindex="-1"></a><span class="co">#&gt;               Tyrannosaurus Velociraptor Triceratops Brachiosaurus Stegosaurus</span></span>
+<span id="cb20-9"><a href="#cb20-9" tabindex="-1"></a><span class="co">#&gt; Velociraptor     0.01492537                                                   </span></span>
+<span id="cb20-10"><a href="#cb20-10" tabindex="-1"></a><span class="co">#&gt; Triceratops      0.01754386   0.01754386                                      </span></span>
+<span id="cb20-11"><a href="#cb20-11" tabindex="-1"></a><span class="co">#&gt; Brachiosaurus    0.01694915   0.01694915  0.01754386                          </span></span>
+<span id="cb20-12"><a href="#cb20-12" tabindex="-1"></a><span class="co">#&gt; Stegosaurus      0.01754386   0.01754386  0.01694915    0.01754386            </span></span>
+<span id="cb20-13"><a href="#cb20-13" tabindex="-1"></a><span class="co">#&gt; Ankylosaurus     0.01754386   0.01754386  0.01694915    0.01754386  0.01612903</span></span>
+<span id="cb20-14"><a href="#cb20-14" tabindex="-1"></a><span class="co">#&gt; Spinosaurus      0.01562500   0.01562500  0.01754386    0.01694915  0.01754386</span></span>
+<span id="cb20-15"><a href="#cb20-15" tabindex="-1"></a><span class="co">#&gt; Diplodocus       0.01694915   0.01694915  0.01754386    0.01470588  0.01754386</span></span>
+<span id="cb20-16"><a href="#cb20-16" tabindex="-1"></a><span class="co">#&gt;               Ankylosaurus Spinosaurus</span></span>
+<span id="cb20-17"><a href="#cb20-17" tabindex="-1"></a><span class="co">#&gt; Velociraptor                          </span></span>
+<span id="cb20-18"><a href="#cb20-18" tabindex="-1"></a><span class="co">#&gt; Triceratops                           </span></span>
+<span id="cb20-19"><a href="#cb20-19" tabindex="-1"></a><span class="co">#&gt; Brachiosaurus                         </span></span>
+<span id="cb20-20"><a href="#cb20-20" tabindex="-1"></a><span class="co">#&gt; Stegosaurus                           </span></span>
+<span id="cb20-21"><a href="#cb20-21" tabindex="-1"></a><span class="co">#&gt; Ankylosaurus                          </span></span>
+<span id="cb20-22"><a href="#cb20-22" tabindex="-1"></a><span class="co">#&gt; Spinosaurus     0.01754386            </span></span>
+<span id="cb20-23"><a href="#cb20-23" tabindex="-1"></a><span class="co">#&gt; Diplodocus      0.01754386  0.01694915</span></span></code></pre></div>
+<div id="hierarchical-clustering" class="section level3">
+<h3>Hierarchical clustering</h3>
+<div class="sourceCode" id="cb21"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" tabindex="-1"></a>clustering <span class="ot">&lt;-</span> <span class="fu">taxo_cluster</span>(</span>
+<span id="cb21-2"><a href="#cb21-2" tabindex="-1"></a>  example_matrix,</span>
+<span id="cb21-3"><a href="#cb21-3" tabindex="-1"></a>  <span class="at">method =</span> <span class="st">&quot;average&quot;</span></span>
+<span id="cb21-4"><a href="#cb21-4" tabindex="-1"></a>)</span>
+<span id="cb21-5"><a href="#cb21-5" tabindex="-1"></a></span>
+<span id="cb21-6"><a href="#cb21-6" tabindex="-1"></a><span class="fu">plot</span>(</span>
+<span id="cb21-7"><a href="#cb21-7" tabindex="-1"></a>  clustering,</span>
+<span id="cb21-8"><a href="#cb21-8" tabindex="-1"></a>  <span class="at">main =</span> <span class="st">&quot;Taxonomic hierarchy distance clustering&quot;</span>,</span>
+<span id="cb21-9"><a href="#cb21-9" tabindex="-1"></a>  <span class="at">xlab =</span> <span class="st">&quot;&quot;</span>,</span>
+<span id="cb21-10"><a href="#cb21-10" tabindex="-1"></a>  <span class="at">sub =</span> <span class="st">&quot;&quot;</span></span>
+<span id="cb21-11"><a href="#cb21-11" tabindex="-1"></a>)</span></code></pre></div>
+<p><img src="data:image/png;base64,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" style="display: block; margin: auto;" /></p>
+<p>The result is a clustering dendrogram, not an independently inferred
+phylogenetic tree.</p>
 </div>
-<div id="caching" class="section level3">
-<h3>Caching</h3>
-<p>Lineages are automatically cached in memory during an R session to
-avoid redundant network requests. This means the second call to
-<code>get_lineage()</code> for the same taxon is instantaneous. Clear
-the cache with:</p>
-<div class="sourceCode" id="cb16"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" tabindex="-1"></a><span class="fu">clear_cache</span>()</span></code></pre></div>
+<div id="principal-coordinates-analysis" class="section level3">
+<h3>Principal coordinates analysis</h3>
+<div class="sourceCode" id="cb22"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" tabindex="-1"></a>ordination <span class="ot">&lt;-</span> <span class="fu">taxo_ordinate</span>(</span>
+<span id="cb22-2"><a href="#cb22-2" tabindex="-1"></a>  example_matrix,</span>
+<span id="cb22-3"><a href="#cb22-3" tabindex="-1"></a>  <span class="at">k =</span> <span class="dv">2</span></span>
+<span id="cb22-4"><a href="#cb22-4" tabindex="-1"></a>)</span>
+<span id="cb22-5"><a href="#cb22-5" tabindex="-1"></a></span>
+<span id="cb22-6"><a href="#cb22-6" tabindex="-1"></a><span class="fu">summary</span>(ordination)</span>
+<span id="cb22-7"><a href="#cb22-7" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb22-8"><a href="#cb22-8" tabindex="-1"></a><span class="co">#&gt; ── Taxonomic Ordination Summary (PCoA) ──</span></span>
+<span id="cb22-9"><a href="#cb22-9" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb22-10"><a href="#cb22-10" tabindex="-1"></a><span class="co">#&gt; Goodness-of-Fit (GOF): 38.52%</span></span>
+<span id="cb22-11"><a href="#cb22-11" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb22-12"><a href="#cb22-12" tabindex="-1"></a><span class="co">#&gt;  Axis Eigenvalue Variance_Pct Cumulative_Pct</span></span>
+<span id="cb22-13"><a href="#cb22-13" tabindex="-1"></a><span class="co">#&gt;   PC1  0.0002059        20.33          20.33</span></span>
+<span id="cb22-14"><a href="#cb22-14" tabindex="-1"></a><span class="co">#&gt;   PC2  0.0001842        18.19          38.52</span></span>
+<span id="cb22-15"><a href="#cb22-15" tabindex="-1"></a><span class="fu">plot</span>(</span>
+<span id="cb22-16"><a href="#cb22-16" tabindex="-1"></a>  ordination,</span>
+<span id="cb22-17"><a href="#cb22-17" tabindex="-1"></a>  <span class="at">main =</span> <span class="st">&quot;Taxonomic hierarchy distance space&quot;</span></span>
+<span id="cb22-18"><a href="#cb22-18" tabindex="-1"></a>)</span></code></pre></div>
+<p><img src="data:image/png;base64,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" style="display: block; margin: auto;" /></p>
+<p>The goodness-of-fit and eigenvalues should be examined before
+interpreting a low-dimensional representation.</p>
 </div>
-<div id="persisting-the-cache-across-sessions" class="section level3">
-<h3>Persisting the cache across sessions</h3>
-<p>By default the cache lives only in memory and is lost when you close
-R. If you have retrieved lineages for a large set of taxa, you can save
-the cache to disk and reload it in a future session to avoid hitting the
-network again:</p>
-<div class="sourceCode" id="cb17"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" tabindex="-1"></a><span class="fu">save_cache</span>(<span class="st">&quot;my_taxa_cache.rds&quot;</span>) <span class="co"># at the end of a session</span></span>
-<span id="cb17-2"><a href="#cb17-2" tabindex="-1"></a></span>
-<span id="cb17-3"><a href="#cb17-3" tabindex="-1"></a><span class="fu">load_cache</span>(<span class="st">&quot;my_taxa_cache.rds&quot;</span>) <span class="co"># at the start of the next session, before any distance calls</span></span></code></pre></div>
-<p>This is especially useful before running
-<code>distance_matrix()</code> on a large dataset.</p>
-<hr />
+<div id="heatmap" class="section level3">
+<h3>Heatmap</h3>
+<div class="sourceCode" id="cb23"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb23-1"><a href="#cb23-1" tabindex="-1"></a><span class="fu">taxo_heatmap</span>(</span>
+<span id="cb23-2"><a href="#cb23-2" tabindex="-1"></a>  example_matrix,</span>
+<span id="cb23-3"><a href="#cb23-3" tabindex="-1"></a>  <span class="at">main =</span> <span class="st">&quot;Taxonomic hierarchy distance matrix&quot;</span></span>
+<span id="cb23-4"><a href="#cb23-4" tabindex="-1"></a>)</span></code></pre></div>
+<p><img src="data:image/png;base64,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" style="display: block; margin: auto;" /></p>
+<p>Additional statistical examples and interpretation are provided
+in:</p>
+<div class="sourceCode" id="cb24"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb24-1"><a href="#cb24-1" tabindex="-1"></a><span class="fu">vignette</span>(<span class="st">&quot;statistical-applications&quot;</span>, <span class="at">package =</span> <span class="st">&quot;taxodist&quot;</span>)</span></code></pre></div>
 </div>
 </div>
-<div id="a-note-on-lineage-depth" class="section level2">
-<h2>A note on lineage depth</h2>
-<p>The Taxonomicon provides substantially deeper lineage resolution than
-most other programmatic sources. For example, <em>Tyrannosaurus</em> has
-70 nodes in its lineage, capturing intermediate clades at the level of
-superfamilies, tribes, and named subclades that are absent from most
-sources. This depth is what makes the distance metric meaningful,
-shallower sources would produce coarser distances that conflate
-distantly related groups.</p>
-<hr />
+<div id="name-resolution-and-coverage" class="section level2">
+<h2>Name resolution and coverage</h2>
+<p>Taxonomic names may be missing, ambiguous, redirected, or associated
+with non-biological homonyms.</p>
+<p><code>taxo_search()</code> returns candidate Taxonomicon entries:</p>
+<div class="sourceCode" id="cb25"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb25-1"><a href="#cb25-1" tabindex="-1"></a><span class="fu">taxo_search</span>(<span class="st">&quot;Panthera&quot;</span>)</span>
+<span id="cb25-2"><a href="#cb25-2" tabindex="-1"></a><span class="fu">taxo_search</span>(<span class="st">&quot;Bacteria&quot;</span>)</span></code></pre></div>
+<p>When several valid biological entries exist, the package reports the
+available identifiers. A numeric identifier should be supplied when the
+intended taxonomic concept is known.</p>
+<p>Before calculating a large matrix, coverage can be checked
+explicitly:</p>
+<div class="sourceCode" id="cb26"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb26-1"><a href="#cb26-1" tabindex="-1"></a>taxa <span class="ot">&lt;-</span> <span class="fu">c</span>(</span>
+<span id="cb26-2"><a href="#cb26-2" tabindex="-1"></a>  <span class="st">&quot;Tyrannosaurus&quot;</span>,</span>
+<span id="cb26-3"><a href="#cb26-3" tabindex="-1"></a>  <span class="st">&quot;Velociraptor&quot;</span>,</span>
+<span id="cb26-4"><a href="#cb26-4" tabindex="-1"></a>  <span class="st">&quot;Quercus&quot;</span>,</span>
+<span id="cb26-5"><a href="#cb26-5" tabindex="-1"></a>  <span class="st">&quot;Not_a_real_taxon&quot;</span></span>
+<span id="cb26-6"><a href="#cb26-6" tabindex="-1"></a>)</span>
+<span id="cb26-7"><a href="#cb26-7" tabindex="-1"></a></span>
+<span id="cb26-8"><a href="#cb26-8" tabindex="-1"></a><span class="fu">check_coverage</span>(taxa)</span></code></pre></div>
+<p>Unresolved taxa generate missing pairwise distances. These values
+should be examined before clustering, ordination, or other methods
+requiring complete finite matrices.</p>
+</div>
+<div id="cache-management" class="section level2">
+<h2>Cache management</h2>
+<p>Taxonomicon identifiers and lineages are cached in memory during an R
+session. This avoids repeated requests for the same taxa.</p>
+<div class="sourceCode" id="cb27"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb27-1"><a href="#cb27-1" tabindex="-1"></a><span class="fu">cache_info</span>()</span>
+<span id="cb27-2"><a href="#cb27-2" tabindex="-1"></a><span class="fu">clear_cache</span>()</span></code></pre></div>
+<p>The cache can also be saved and restored:</p>
+<div class="sourceCode" id="cb28"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb28-1"><a href="#cb28-1" tabindex="-1"></a><span class="fu">save_cache</span>(<span class="st">&quot;taxodist-cache.rds&quot;</span>)</span>
+<span id="cb28-2"><a href="#cb28-2" tabindex="-1"></a><span class="fu">clear_cache</span>()</span>
+<span id="cb28-3"><a href="#cb28-3" tabindex="-1"></a><span class="fu">load_cache</span>(<span class="st">&quot;taxodist-cache.rds&quot;</span>)</span></code></pre></div>
+<p>Cache files preserve retrieved lineages across sessions. They should
+be regenerated when an analysis is intended to incorporate subsequent
+revisions of the source classification.</p>
+</div>
+<div id="interpretation-and-reproducibility" class="section level2">
+<h2>Interpretation and reproducibility</h2>
+<p>The numerical distance depends on the classification supplied by The
+Taxonomicon. Changes in lineage resolution or taxonomic concepts can
+alter MRCA depths and therefore alter distances.</p>
+<p>A reproducible analysis should record:</p>
+<ul>
+<li>the <code>taxodist</code> version;</li>
+<li>the retrieval or dataset-generation date;</li>
+<li>the source classification;</li>
+<li>numeric identifiers used to resolve ambiguous names;</li>
+<li>missing or excluded taxa;</li>
+<li>the distance definition;</li>
+<li>downstream clustering or ordination settings.</li>
+</ul>
+<p>Saved caches and distance matrices can preserve the exact input used
+in an analysis.</p>
 </div>
 <div id="data-source-and-citation" class="section level2">
 <h2>Data source and citation</h2>
-<p>All lineage data is sourced from The Taxonomicon (taxonomy.nl), based
-on <em>Systema Naturae 2000</em>:</p>
-<blockquote>
-<p>Brands, S.J. (1989 onwards). <em>Systema Naturae 2000</em>.
-Amsterdam, The Netherlands. Retrieved from The Taxonomicon, <a href="http://taxonomicon.taxonomy.nl" class="uri">http://taxonomicon.taxonomy.nl</a>.</p>
-</blockquote>
-<p>Please cite this resource in any published work using
-<code>taxodist</code>.</p>
+<p>All retrieved lineage data originate from The Taxonomicon, based on
+<em>Systema Naturae 2000</em>.</p>
+<p>Formatted references for both the package and the data source are
+available with:</p>
+<div class="sourceCode" id="cb29"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb29-1"><a href="#cb29-1" tabindex="-1"></a><span class="fu">citation</span>(<span class="st">&quot;taxodist&quot;</span>)</span></code></pre></div>
+<p>Both the software and the underlying taxonomic source should be cited
+in published analyses.</p>
 </div>
 
 

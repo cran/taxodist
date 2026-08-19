@@ -1,169 +1,219 @@
-## ----setup, include = FALSE---------------------------------------------------
+## ----setup, include=FALSE-----------------------------------------------------
 knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>",
-  eval = FALSE
+  fig.align = "center"
 )
+
 library(taxodist)
 
-## ----lineage------------------------------------------------------------------
-# lin <- get_lineage("Tyrannosaurus")
-# tail(lin, 8)
-# #> [1] "Avetheropoda"     "Coelurosauria"    "Tyrannoraptora"   "Tyrannosauroidea"
-# #> [5] "Tyrannosauridae"  "Tyrannosaurinae"  "Tyrannosaurini"   "Tyrannosaurus"
+if (is.null(taxobase$matrix)) {
+  stop(
+    "The installed taxobase object does not contain the reference matrix. ",
+    "Rebuild data/taxobase.rda before building this vignette."
+  )
+}
 
-## ----lineage-species----------------------------------------------------------
-# lin <- get_lineage("Drosophila melanogaster")
-# tail(lin, 4)
-# #> [1] "Ephydroidea"             "Drosophilidae"           "Drosophilinae"
-# #> [4] "Drosophila melanogaster"
+## ----methodology-link, eval=FALSE---------------------------------------------
+# vignette("methodological-notes", package = "taxodist")
 
-## ----distance-----------------------------------------------------------------
-# result <- taxo_distance("Tyrannosaurus", "Velociraptor")
-# print(result)
-# #> -- Taxonomic Distance --
-# #>
-# #> * Tyrannosaurus vs Velociraptor
-# #>   Distance : 0.0153846153846154
-# #>   MRCA : Tyrannoraptora (depth 65)
-# #>   Depth A : 70
-# #>   Depth B : 73
+## ----taxobase-----------------------------------------------------------------
+names(taxobase)
+taxobase$metadata
 
-## ----distance-far-------------------------------------------------------------
-# taxo_distance("Tyrannosaurus", "Homo")$distance        # 0.02777778
-# taxo_distance("Tyrannosaurus", "Drosophila")$distance  # 0.06666667
-# taxo_distance("Tyrannosaurus", "Quercus")$distance     # 0.25
-# taxo_distance("Escherichia", "Homo")$distance          # 1
+## ----stored-lineages----------------------------------------------------------
+tail(taxobase$lineage_tyrannosaurus)
+tail(taxobase$lineage_homo)
 
-## ----mrca---------------------------------------------------------------------
-# mrca("Tyrannosaurus", "Velociraptor")  # "Tyrannoraptora"
-# mrca("Tyrannosaurus", "Triceratops")   # "Dinosauria"
-# mrca("Tyrannosaurus", "Homo")          # "Amniota"
-# mrca("Tyrannosaurus", "Drosophila")    # "Nephrozoa"
-# mrca("Tyrannosaurus", "Quercus")       # "discaria"
+## ----stored-pairwise----------------------------------------------------------
+taxobase$pairwise
 
-## ----matrix-------------------------------------------------------------------
-# taxa <- c(
-#   "Tyrannosaurus", "Carnotaurus", "Triceratops",
-#   "Parasaurolophus", "Stegosaurus", "Brachiosaurus",
-#   "Homo sapiens", "Homo neanderthalensis", "Pan troglodytes",
-#   "Panthera leo", "Canis lupus",
-#   "Ornithorhynchus anatinus",
-#   "Loxodonta africana",
-#   "Struthio camelus",
-#   "Aptenodytes forsteri",
-#   "Ara ararauna",
-#   "Crocodylus niloticus",
-#   "Chelonia mydas",
-#   "Ambystoma mexicanum",
-#   "Octopus vulgaris",
-#   "Carcharodon carcharias",
-#   "Balaenoptera musculus",
-#   "Drosophila melanogaster",
-#   "Apis mellifera",
-#   "Arabidopsis thaliana",
-#   "Quercus robur",
-#   "Ginkgo biloba",
-#   "Welwitschia mirabilis",
-#   "Saccharomyces cerevisiae",
-#   "Escherichia coli",
-#   "Bacillus subtilis",
-#   "Plasmodium falciparum"
+## ----result-structure---------------------------------------------------------
+class(taxobase$pairwise)
+names(taxobase$pairwise)
+
+## ----reference-matrix---------------------------------------------------------
+reference_matrix <- taxobase$matrix
+
+inherits(reference_matrix, "dist")
+attr(reference_matrix, "Size")
+head(attr(reference_matrix, "Labels"))
+
+round(
+  as.matrix(reference_matrix)[1:6, 1:6],
+  digits = 4
+)
+
+## ----live-lineage, eval=FALSE-------------------------------------------------
+# get_lineage("Tyrannosaurus")
+# get_lineage("Drosophila melanogaster")
+
+## ----lineage-id, eval=FALSE---------------------------------------------------
+# get_lineage("67263")
+
+## ----live-distance, eval=FALSE------------------------------------------------
+# result <- taxo_distance(
+#   "Tyrannosaurus",
+#   "Velociraptor"
 # )
-# mat <- distance_matrix(taxa)
-# print(mat)
+# 
+# result
+# result$distance
+# result$mrca
 
-## ----clustering---------------------------------------------------------------
-# cl <- taxo_cluster(taxa)
-# plot(cl)
+## ----live-mrca, eval=FALSE----------------------------------------------------
+# mrca("Tyrannosaurus", "Velociraptor")
+# mrca("Tyrannosaurus", "Triceratops")
+# mrca("Tyrannosaurus", "Homo")
 
-## ----PCoA---------------------------------------------------------------------
-# ord <- taxo_ordinate(taxa)
-# summary(ord)
-# plot(ord)
+## ----live-path, eval=FALSE----------------------------------------------------
+# taxo_path(
+#   "Tyrannosaurus",
+#   "Triceratops"
+# )
+# 
+# taxo_path(
+#   "Dinosauria",
+#   "Tyrannosaurus"
+# )
 
-## -----------------------------------------------------------------------------
-# taxo_heatmap(taxa)
+## ----live-matrix, eval=FALSE--------------------------------------------------
+# taxa <- c(
+#   "Tyrannosaurus",
+#   "Velociraptor",
+#   "Spinosaurus",
+#   "Allosaurus"
+# )
+# 
+# mat <- distance_matrix(
+#   taxa,
+#   progress = TRUE
+# )
+# 
+# mat
 
-## ----closest------------------------------------------------------------------
+## ----stored-closest-----------------------------------------------------------
+taxobase$closest
+
+## ----live-closest, eval=FALSE-------------------------------------------------
 # closest_relative(
 #   "Carnotaurus",
-#   c("Aucasaurus", "Velociraptor", "Triceratops",
-#     "Brachiosaurus", "Homo sapiens", "Apis mellifera")
+#   c(
+#     "Aucasaurus",
+#     "Velociraptor",
+#     "Triceratops",
+#     "Brachiosaurus"
+#   )
 # )
-# #>            taxon   distance
-# #> 1     Aucasaurus 0.01515152
-# #> 2   Velociraptor 0.01666667
-# #> 4  Brachiosaurus 0.01754386
-# #> 3    Triceratops 0.01818182
-# #> 5   Homo sapiens 0.02777778
-# #> 6 Apis mellifera 0.06666667
 
-## ----compare------------------------------------------------------------------
-# compare_lineages("Carnotaurus", "Tyrannosaurus")
-# #> -- Lineage Comparison --
-# #> MRCA: Averostra at depth 60
-# #>
-# #> Shared lineage (60 nodes):
-# #>   Biota ... Theropoda
-# #>
-# #> Carnotaurus only (7 nodes):
-# #> Ceratosauria
-# #> Neoceratosauria
-# #> Abelisauroidea
-# #> Abelisauria
-# #> Abelisauridae
-# #> Carnotaurinae
-# #> Carnotaurus
-# #>
-# #> Tyrannosaurus only (10 nodes):
-# #> Tetanurae
-# #> Orionides
-# #> ...
+## ----live-focal, eval=FALSE---------------------------------------------------
+# focal_distances(
+#   focal = "Tyrannosaurus",
+#   community = c(
+#     "Velociraptor",
+#     "Triceratops",
+#     "Spinosaurus"
+#   )
+# )
 
-## ----shared-------------------------------------------------------------------
-# # what do a fly and a beetle have in common?
-# shared_clades("Drosophila melanogaster", "Tribolium castaneum")
-# # returns their shared lineage from Biota down to their MRCA
-# 
-# # what do T. rex and a rose share?
-# shared_clades("Tyrannosaurus rex", "Rosa agrestis")
+## ----live-membership, eval=FALSE----------------------------------------------
+# is_member("Tyrannosaurus", "Dinosauria")
+# is_member("Tyrannosaurus", "Theropoda")
+# is_member("Tyrannosaurus", "Ornithischia")
 
-## ----membership---------------------------------------------------------------
-# is_member("Tyrannosaurus", "Theropoda")          # TRUE
-# is_member("Carnotaurus", "Abelisauridae")        # TRUE
-# is_member("Triceratops", "Theropoda")            # FALSE
-# is_member("Homo sapiens", "Amniota")             # TRUE
-# is_member("Drosophila melanogaster", "Insecta")  # TRUE
-# is_member("Quercus robur", "Animalia")           # FALSE
+## ----stored-filter------------------------------------------------------------
+taxobase$filter
 
-## ----filter-------------------------------------------------------------------
-# taxa <- c("Tyrannosaurus", "Carnotaurus", "Triceratops",
-#           "Velociraptor", "Homo sapiens", "Drosophila melanogaster",
-#           "Quercus robur", "Saccharomyces cerevisiae")
+## ----live-filter, eval=FALSE--------------------------------------------------
+# taxa <- c(
+#   "Tyrannosaurus",
+#   "Carnotaurus",
+#   "Triceratops",
+#   "Velociraptor",
+#   "Homo",
+#   "Drosophila"
+# )
 # 
 # filter_clade(taxa, "Dinosauria")
-# #> [1] "Tyrannosaurus" "Carnotaurus"   "Triceratops"   "Velociraptor"
-# 
 # filter_clade(taxa, "Theropoda")
-# #> [1] "Tyrannosaurus" "Carnotaurus"   "Velociraptor"
+
+## ----live-comparison, eval=FALSE----------------------------------------------
+# shared_clades(
+#   "Tyrannosaurus",
+#   "Triceratops"
+# )
 # 
-# filter_clade(taxa, "Animalia")
-# #> [1] "Tyrannosaurus"          "Carnotaurus"
-# #> [3] "Triceratops"            "Velociraptor"
-# #> [5] "Homo sapiens"           "Drosophila melanogaster"
+# compare_lineages(
+#   "Carnotaurus",
+#   "Tyrannosaurus"
+# )
 
-## ----coverage-----------------------------------------------------------------
-# taxa <- c("Tyrannosaurus", "Velociraptor", "Apis mellifera", "Fakeosaurus")
+## ----analysis-matrix----------------------------------------------------------
+labels <- attr(reference_matrix, "Labels")[1:8]
+
+example_matrix <- stats::as.dist(
+  as.matrix(reference_matrix)[labels, labels]
+)
+
+example_matrix
+
+## ----clustering, fig.width=7, fig.height=5------------------------------------
+clustering <- taxo_cluster(
+  example_matrix,
+  method = "average"
+)
+
+plot(
+  clustering,
+  main = "Taxonomic hierarchy distance clustering",
+  xlab = "",
+  sub = ""
+)
+
+## ----ordination, fig.width=7, fig.height=5------------------------------------
+ordination <- taxo_ordinate(
+  example_matrix,
+  k = 2
+)
+
+summary(ordination)
+plot(
+  ordination,
+  main = "Taxonomic hierarchy distance space"
+)
+
+## ----heatmap, fig.width=7, fig.height=6---------------------------------------
+taxo_heatmap(
+  example_matrix,
+  main = "Taxonomic hierarchy distance matrix"
+)
+
+## ----statistics-link, eval=FALSE----------------------------------------------
+# vignette("statistical-applications", package = "taxodist")
+
+## ----live-search, eval=FALSE--------------------------------------------------
+# taxo_search("Panthera")
+# taxo_search("Bacteria")
+
+## ----live-coverage, eval=FALSE------------------------------------------------
+# taxa <- c(
+#   "Tyrannosaurus",
+#   "Velociraptor",
+#   "Quercus",
+#   "Not_a_real_taxon"
+# )
+# 
 # check_coverage(taxa)
-# #>  Tyrannosaurus  Velociraptor  Apis mellifera    Fakeosaurus
-# #>           TRUE          TRUE            TRUE          FALSE
 
-## ----cache--------------------------------------------------------------------
+## ----live-cache, eval=FALSE---------------------------------------------------
+# cache_info()
 # clear_cache()
 
-## ----save-cache---------------------------------------------------------------
-# save_cache("my_taxa_cache.rds") # at the end of a session
-# 
-# load_cache("my_taxa_cache.rds") # at the start of the next session, before any distance calls
+## ----persistent-cache, eval=FALSE---------------------------------------------
+# save_cache("taxodist-cache.rds")
+# clear_cache()
+# load_cache("taxodist-cache.rds")
+
+## ----citation, eval=FALSE-----------------------------------------------------
+# citation("taxodist")
 

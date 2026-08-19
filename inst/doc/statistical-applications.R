@@ -1,167 +1,201 @@
-## ----setup, include = FALSE---------------------------------------------------
+## ----setup, include=FALSE-----------------------------------------------------
 knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>",
-  eval = FALSE
+  fig.align = "center"
 )
+
 library(taxodist)
 
+vegan_available <- requireNamespace("vegan", quietly = TRUE)
+ape_available <- requireNamespace("ape", quietly = TRUE)
+
+if (is.null(taxobase$statistical_matrix)) {
+  stop(
+    "The installed taxobase object does not contain statistical_matrix. ",
+    "Rebuild data/taxobase.rda before building this vignette."
+  )
+}
+
+## ----data---------------------------------------------------------------------
+taxa <- taxobase$statistical_taxa
+mat <- taxobase$statistical_matrix
+
+taxobase$metadata
+length(taxa)
+inherits(mat, "dist")
+identical(attr(mat, "Labels"), taxa)
+
 ## ----taxa---------------------------------------------------------------------
-# taxa_brazil <- c(
-#   "Priodontes", "Myrmecophaga", "Chrysocyon", "Tapirus", "Didelphis",
-#   "Leontopithecus", "Brachyteles",
-#   "Panthera", "Pteronura", "Puma",
-#   "Sotalia", "Pontoporia",
-#   "Trichechus", "Mazama", "Blastocerus"
-# )
+taxa
 
-## ----matrix-------------------------------------------------------------------
+## ----matrix-summary-----------------------------------------------------------
+summary(as.vector(mat))
+range(mat)
+
+round(
+  as.matrix(mat)[1:6, 1:6],
+  digits = 5
+)
+
+## ----clustering, fig.width=7, fig.height=5------------------------------------
+clustering <- taxo_cluster(mat, method = "average")
+
+clustering$hclust
+summary(clustering$hclust$height)
+
+plot(
+  clustering,
+  main = "Average-linkage clustering of taxonomic hierarchy distances",
+  xlab = "",
+  sub = ""
+)
+
+## ----ape-tree, eval=ape_available, fig.width=7, fig.height=5------------------
+tree <- ape::as.phylo(clustering$hclust)
+
+plot(
+  tree,
+  main = "Tree representation of a taxonomic distance dendrogram",
+  cex = 0.8
+)
+
+## ----ape-export, eval=FALSE---------------------------------------------------
+# ape::write.tree(tree, file = "taxonomic-distance-dendrogram.nwk")
+
+## ----pcoa---------------------------------------------------------------------
+ordination <- taxo_ordinate(mat, k = 2)
+
+positive_eigenvalues <- ordination$eig[ordination$eig > 0]
+variance_percent <- 100 * positive_eigenvalues / sum(positive_eigenvalues)
+
+ordination_summary <- data.frame(
+  Axis = c("PC1", "PC2"),
+  Eigenvalue = ordination$eig[1:2],
+  Variance_percent = variance_percent[1:2],
+  Cumulative_percent = cumsum(variance_percent)[1:2]
+)
+
+ordination_summary
+100 * ordination$GOF[1]
+sum(ordination$eig < -sqrt(.Machine$double.eps))
+
+## ----pcoa-plot, fig.width=7, fig.height=5-------------------------------------
+plot(
+  ordination,
+  main = "PCoA of taxonomic hierarchy distances"
+)
+
+## ----community----------------------------------------------------------------
+comm <- matrix(
+  c(
+    1,1,0,0,1,0,0,0,0,0,0,0,0,0,0,
+    0,0,0,0,0,1,1,1,1,1,0,0,0,0,0,
+    0,0,0,0,0,0,0,0,0,0,1,1,1,1,1
+  ),
+  nrow = 3,
+  byrow = TRUE,
+  dimnames = list(
+    c("community_A", "community_B", "community_C"),
+    taxa
+  )
+)
+
+comm
+
+## ----taxondive, eval=vegan_available------------------------------------------
+taxonomic_diversity <- vegan::taxondive(comm, mat)
+
+taxonomic_diversity_table <- data.frame(
+  Species = taxonomic_diversity$Species,
+  Delta = taxonomic_diversity$D,
+  Delta_star = taxonomic_diversity$Dstar,
+  Lambda_plus = taxonomic_diversity$Lambda,
+  Delta_plus = taxonomic_diversity$Dplus,
+  SD_Delta_plus = taxonomic_diversity$sd.Dplus
+)
+
+taxonomic_diversity_table
+
+## ----mantel, eval=vegan_available---------------------------------------------
+set.seed(42)
+
+coordinates <- matrix(
+  rnorm(2 * length(taxa)),
+  ncol = 2,
+  dimnames = list(taxa, c("x", "y"))
+)
+
+geographic_distance <- stats::dist(coordinates)
+
+mantel_result <- vegan::mantel(
+  mat,
+  geographic_distance,
+  method = "pearson",
+  permutations = 999
+)
+
+mantel_result
+
+## ----groups-------------------------------------------------------------------
+groups <- factor(c(
+  "xenarthran", "xenarthran",
+  "carnivoran",
+  "ungulate",
+  "marsupial",
+  "primate", "primate",
+  "carnivoran", "carnivoran", "carnivoran",
+  "cetacean", "cetacean",
+  "sirenian",
+  "ungulate", "ungulate"
+))
+
+table(groups)
+
+## ----permanova, eval=vegan_available------------------------------------------
+set.seed(42)
+
+permanova_result <- vegan::adonis2(
+  mat ~ groups,
+  permutations = 999
+)
+
+permanova_result
+
+## ----dispersion, eval=vegan_available-----------------------------------------
+dispersion <- vegan::betadisper(mat, groups)
+
+anova(dispersion)
+
+set.seed(42)
+vegan::permutest(
+  dispersion,
+  permutations = 999
+)
+
+## ----live-workflow, eval=FALSE------------------------------------------------
 # library(taxodist)
-# mat <- distance_matrix(taxa_brazil)
-# print(mat)
-# #>                Priodontes Myrmecophaga Chrysocyon    Tapirus  Didelphis
-# #> Myrmecophaga   0.01639344
-# #> Chrysocyon     0.01694915   0.01694915
-# #> Tapirus        0.01694915   0.01694915 0.01587302
-# #> Didelphis      0.01754386   0.01754386 0.01754386 0.01754386
-# #> Leontopithecus 0.01694915   0.01694915 0.01666667 0.01666667 0.01754386
-# #> Brachyteles    0.01694915   0.01694915 0.01666667 0.01666667 0.01754386
-# #> Panthera       0.01694915   0.01694915 0.01492537 0.01587302 0.01754386
-# #> Pteronura      0.01694915   0.01694915 0.01470588 0.01587302 0.01754386
-# #> Puma           0.01694915   0.01694915 0.01492537 0.01587302 0.01754386
-# #> Sotalia        0.01694915   0.01694915 0.01587302 0.01562500 0.01754386
-# #> Pontoporia     0.01694915   0.01694915 0.01587302 0.01562500 0.01754386
-# #> Trichechus     0.01666667   0.01666667 0.01694915 0.01694915 0.01754386
-# #> Mazama         0.01694915   0.01694915 0.01587302 0.01562500 0.01754386
-# #> Blastocerus    0.01694915   0.01694915 0.01587302 0.01562500 0.01754386
-
-## ----ape, fig.width = 7, fig.height = 5---------------------------------------
-# library(ape)
 # 
-# cl   <- taxo_cluster(taxa_brazil)
-# tree <- ape::as.phylo(cl$hclust)
-# 
-# plot(tree,
-#      main      = "Threatened Mammals of Brazil",
-#      cex       = 0.85,
-#      tip.color = "gray20")
-
-## ----ape-newick---------------------------------------------------------------
-# ape::write.tree(tree, file = "taxa_brazil.nwk")
-
-## ----taxondive----------------------------------------------------------------
-# set.seed(123)
-# library(vegan)
-# 
-# comm <- matrix(c(
-#   1, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,   # xenarthrans + marsupial
-#   0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0,   # primates + carnivores
-#   0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1    # cetaceans + sirenian + ungulates
-# ), nrow = 3, byrow = TRUE)
-# 
-# colnames(comm) <- taxa_brazil
-# rownames(comm) <- c("community_A", "community_B", "community_C")
-# 
-# vegan::taxondive(comm, mat)
-# #>               Species      Delta       Delta*     Lambda+     Delta+     S Delta+
-# #> community_A  3.0000e+00  1.7160e-02  1.7160e-02  2.9410e-07  1.7160e-02   0.0515
-# #> community_B  5.0000e+00  1.5905e-02  1.5905e-02  8.8325e-07  1.5905e-02   0.0795
-# #> community_C  5.0000e+00  1.5750e-02  1.5750e-02  1.1834e-06  1.5750e-02   0.0788
-# #> Expected                -9.9265e-02  1.6544e-02              1.6457e-02
-
-## ----mantel-------------------------------------------------------------------
-# set.seed(42)
-# coords <- matrix(rnorm(30), ncol = 2)
-# rownames(coords) <- taxa_brazil
-# geo_dist <- dist(coords)
-# 
-# vegan::mantel(mat, geo_dist)
-# #> Mantel statistic based on Pearson's product-moment correlation
-# #>
-# #> Call:
-# #> vegan::mantel(xdis = mat, ydis = geo_dist)
-# #>
-# #> Mantel statistic r: -0.0569
-# #>       Significance: 0.653
-# #>
-# #> Upper quantiles of permutations (null model):
-# #>   90%   95% 97.5%   99%
-# #> 0.188 0.237 0.272 0.336
-# #> Permutation: free
-# #> Number of permutations: 999
-
-## ----mantel-spearman----------------------------------------------------------
-# vegan::mantel(mat, geo_dist, method = "spearman", permutations = 9999)
-# #> Mantel statistic based on Spearman's rank correlation rho
-# #>
-# #> Call:
-# #> vegan::mantel(xdis = mat, ydis = geo_dist, method = "spearman",
-# #>     permutations = 9999)
-# #>
-# #> Mantel statistic r: -0.07405
-# #>       Significance: 0.672
-# #>
-# #> Upper quantiles of permutations (null model):
-# #>   90%   95% 97.5%   99%
-# #> 0.189 0.244 0.293 0.353
-# #> Permutation: free
-# #> Number of permutations: 9999
-
-## ----permanova----------------------------------------------------------------
-# groups <- c(
-#   "xenarthra", "xenarthra", "carnivore", "ungulate",  "marsupial",
-#   "primate",   "primate",
-#   "carnivore", "carnivore", "carnivore",
-#   "cetacean",  "cetacean",
-#   "sirenian",  "ungulate",  "ungulate"
+# taxa <- c(
+#   "Tyrannosaurus",
+#   "Velociraptor",
+#   "Spinosaurus",
+#   "Allosaurus"
 # )
 # 
-# vegan::adonis2(mat ~ groups)
-# #> Permutation test for adonis under reduced model
-# #> Permutation: free
-# #> Number of permutations: 999
-# #>
-# #> vegan::adonis2(formula = mat ~ groups)
-# #>          Df  SumOfSqs      R2      F Pr(>F)
-# #> Model     6 0.00100049 0.52646 1.4823  0.001 ***
-# #> Residual  8 0.00089992 0.47354
-# #> Total    14 0.00190041 1.00000
-# #> ---
-# #> Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+# coverage <- check_coverage(taxa)
+# stopifnot(all(coverage))
+# 
+# mat <- distance_matrix(taxa)
+# 
+# clustering <- taxo_cluster(mat, method = "average")
+# ordination <- taxo_ordinate(mat, k = 2)
+# 
+# plot(clustering)
+# plot(ordination)
 
-## ----workflow-----------------------------------------------------------------
-# library(taxodist)
-# library(vegan)
-# library(ape)
-# 
-# # 1. define taxa
-# taxa_brazil <- c(
-#   "Priodontes", "Myrmecophaga", "Chrysocyon", "Tapirus", "Didelphis",
-#   "Leontopithecus", "Brachyteles",
-#   "Panthera", "Pteronura", "Puma",
-#   "Sotalia", "Pontoporia",
-#   "Trichechus", "Mazama", "Blastocerus"
-# )
-# 
-# # 2. compute distance matrix
-# mat <- distance_matrix(taxa_brazil)
-# 
-# # 3. hierarchical clustering and phylo plot
-# cl   <- taxo_cluster(taxa_brazil)
-# tree <- ape::as.phylo(cl$hclust)
-# plot(tree, main = "Threatened Mammals of Brazil", cex = 0.85)
-# 
-# # 4. PCoA ordination
-# ord <- taxo_ordinate(mat)
-# plot(ord, main = "PCoA: Taxonomic Distance Space")
-# 
-# # 5. PERMANOVA
-# groups <- c(
-#   "xenarthra", "xenarthra", "carnivore", "ungulate",  "marsupial",
-#   "primate",   "primate",
-#   "carnivore", "carnivore", "carnivore",
-#   "cetacean",  "cetacean",
-#   "sirenian",  "ungulate",  "ungulate"
-# )
-# vegan::adonis2(mat ~ groups)
+## ----citations, eval=FALSE----------------------------------------------------
+# citation("taxodist")
+# citation("vegan")
+# citation("ape")
 
