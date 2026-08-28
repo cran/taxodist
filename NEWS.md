@@ -165,3 +165,25 @@
   and return informative fallback objects instead of failing downstream.
 * `load_cache()` validates cache structure, names, and value types before
   modifying the active cache.
+
+# taxodist 0.7.0
+
+## Performance
+
+* Optimized `distance_matrix()` to fill the compact lower-triangular `dist`
+  representation directly instead of allocating a full square matrix.
+* Added a numeric-only pairwise distance path for matrix construction,
+  avoiding allocation of a detailed S3 result object for every taxon pair.
+  Public return values and distance semantics are unchanged.
+* Cached the final name-resolved lineage used by `distance_matrix()`, avoiding
+  repeated filtering and regular-expression work in warm matrix construction.
+
+## Compatibility and validation
+
+* Preserved the public API and the continuous-prefix MRCA distance semantics.
+* Revalidated the reference matrices and lineage outputs against the Python
+  and Julia implementations.
+* Expanded regression coverage for the optimized numeric and cache paths; the
+  package test suite now reports complete source coverage.
+* Cache inspection and clearing now address the private cache environment
+  explicitly, avoiding ambiguous search-list lookup during installed use.
