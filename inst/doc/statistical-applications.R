@@ -63,6 +63,10 @@ plot(
 ## ----ape-export, eval=FALSE---------------------------------------------------
 # ape::write.tree(tree, file = "taxonomic-distance-dendrogram.nwk")
 
+## ----taxo-tree, eval=FALSE----------------------------------------------------
+# classification_tree <- taxo_tree(taxa)
+# plot(classification_tree, show.node.label = TRUE, cex = 0.8)
+
 ## ----pcoa---------------------------------------------------------------------
 ordination <- taxo_ordinate(mat, k = 2)
 

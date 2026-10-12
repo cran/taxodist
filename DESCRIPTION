@@ -1,6 +1,6 @@
 Package: taxodist
 Title: Taxonomic Hierarchy Distances and Lineage Analysis
-Version: 0.8.0
+Version: 0.9.0
 LazyData: true
 Authors@R: person("Rodrigo Fonseca", "Villa", email = "rodrigo03.villa@gmail.com",
            role = c("aut", "cre"),
@@ -12,8 +12,9 @@ Description: Computes distances between taxonomic hierarchy nodes using lineage
     most recent common ancestor; identical nodes have distance zero. This
     definition yields an ultrametric within each connected hierarchy. Functions
     are provided for auditable name resolution, online or user-supplied lineage
-    analysis, clade membership, pairwise and matrix distance calculation,
-    hierarchical clustering, principal coordinates analysis, portable JSON
+    analysis, clade membership, pairwise, matrix, and cross-set distance
+    calculation, classification trees with named clades, hierarchical
+    clustering, principal coordinates analysis, portable and comparable JSON
     analysis bundles, and cache management. Distance matrices are returned as
     base R 'dist' objects. The distances represent classification depth rather
     than evolutionary time or phylogenetic branch length.
@@ -25,16 +26,15 @@ Encoding: UTF-8
 RoxygenNote: 7.3.3
 SystemRequirements: internet access for online taxonomy retrieval
 Depends: R (>= 4.1.0)
-Imports: httr (>= 1.4.0), rvest (>= 1.0.0), stringr (>= 1.4.0), purrr
-        (>= 0.3.0), cli (>= 3.0.0), jsonlite (>= 1.8.0), utils, stats,
-        graphics
+Imports: httr (>= 1.4.0), rvest (>= 1.0.0), stringr (>= 1.4.0), cli (>=
+        3.0.0), jsonlite (>= 1.8.0), utils, stats, graphics, tools
 Suggests: testthat (>= 3.0.0), mockery, knitr, rmarkdown, xml2, ape,
-        vegan, webmockr
+        vegan
 VignetteBuilder: knitr
 Config/testthat/edition: 3
 NeedsCompilation: no
-Packaged: 2026-09-23 18:54:20 UTC; rodri
+Packaged: 2026-10-12 12:34:06 UTC; rodri
 Author: Rodrigo Fonseca Villa [aut, cre] (ORCID:
     <https://orcid.org/0009-0005-2938-2270>)
 Repository: CRAN
-Date/Publication: 2026-09-24 08:50:02 UTC
+Date/Publication: 2026-10-12 13:30:02 UTC

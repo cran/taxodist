@@ -92,6 +92,18 @@ round(
 # 
 # mat
 
+## ----cross-distances----------------------------------------------------------
+community <- taxo_from_lineages(list(
+  Tyrannosaurus = c("Biota", "Dinosauria", "Theropoda", "Tyrannosaurus"),
+  Triceratops = c("Biota", "Dinosauria", "Ornithischia", "Triceratops")
+))
+reference <- taxo_from_lineages(list(
+  Velociraptor = c("Biota", "Dinosauria", "Theropoda", "Velociraptor"),
+  Homo = c("Biota", "Mammalia", "Homo")
+))
+
+cross_distances(community, reference)
+
 ## ----stored-closest-----------------------------------------------------------
 taxobase$closest
 
@@ -170,6 +182,25 @@ plot(
   sub = ""
 )
 
+## ----taxo-tree, eval=requireNamespace("ape", quietly = TRUE), fig.width=7, fig.height=4----
+lineages <- taxo_from_lineages(list(
+  Tyrannosaurus = c("Biota", "Dinosauria", "Theropoda", "Tyrannosaurus"),
+  Velociraptor = c("Biota", "Dinosauria", "Theropoda", "Velociraptor"),
+  Triceratops = c("Biota", "Dinosauria", "Ornithischia", "Triceratops"),
+  Homo = c("Biota", "Mammalia", "Homo")
+))
+
+tree <- taxo_tree(lineages)
+tree$node.label
+
+plot(tree, show.node.label = TRUE, main = "Classification tree")
+
+tree_distances <- distance_matrix(lineages, progress = FALSE)
+all.equal(
+  ape::cophenetic.phylo(tree)[labels(tree_distances), labels(tree_distances)],
+  as.matrix(tree_distances)
+)
+
 ## ----ordination, fig.width=7, fig.height=5------------------------------------
 ordination <- taxo_ordinate(
   example_matrix,
@@ -185,7 +216,8 @@ plot(
 ## ----heatmap, fig.width=7, fig.height=6---------------------------------------
 taxo_heatmap(
   example_matrix,
-  main = "Taxonomic hierarchy distance matrix"
+  main = "Taxonomic hierarchy distance matrix",
+  col = hcl.colors(12, "YlOrRd", rev = TRUE)
 )
 
 ## ----statistics-link, eval=FALSE----------------------------------------------
@@ -194,6 +226,14 @@ taxo_heatmap(
 ## ----live-search, eval=FALSE--------------------------------------------------
 # taxo_search("Panthera")
 # taxo_search("Bacteria")
+
+## ----live-resolve, eval=FALSE-------------------------------------------------
+# resolved <- taxo_resolve(
+#   c("Tyrannosaurus", "Nereis", "Not_a_real_taxon"),
+#   within = "Animalia"
+# )
+# resolved
+# distance_matrix(resolved)
 
 ## ----live-coverage, eval=FALSE------------------------------------------------
 # taxa <- c(
@@ -213,6 +253,16 @@ taxo_heatmap(
 # save_cache("taxodist-cache.rds")
 # clear_cache()
 # load_cache("taxodist-cache.rds")
+
+## ----default-cache, eval=FALSE------------------------------------------------
+# save_cache()
+# # In a later session:
+# load_cache()
+
+## ----live-bundles, eval=FALSE-------------------------------------------------
+# before <- read_taxodist_bundle("analysis-2026.json")
+# after <- taxo_bundle(before$resolution$input)
+# compare_bundles(before, after)
 
 ## ----citation, eval=FALSE-----------------------------------------------------
 # citation("taxodist")
